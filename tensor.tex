@@ -1,0 +1,37 @@
+\chapter{Tensoren}
+\label{h:tensoren}
+
+\todo{intro + vermelden parafrazering + misschien titel CPD noemen}
+
+\section{Tensoren}
+Men kan een tensor voorstellen als een $N$-dimensionale rij. We spreken dan over een $N$-de-orde tensor $\tensor{T}$. $\tensor{T}$ heeft $N$ modes en orde is gelijk aan $N$. Formeel schrijven we $\tensor{T} \in \R^{I_1 \times \dotsb \times I_N}$. $I_n$ is gelijk aan het aantal elementen in mode $n$. Tensoren zijn ook gedefini\"eerd voor complexe getallen, maar we gaan ons beperken tot de rationale getallen.
+
+
+Een element van een derde-orde tensor $\tensor{T}$ noteren we als $t_{ijk}$. $i$ komt overeen met de eerste mode, $j$ met de tweede en $k$ met de derde mode. Een element van een $N$-de-orde tensor schrijven we als $t_\ii$ met $\ii \in \I$. We defini\"eren de indexverzameling $\I$ als de verzameling van alle vectoren die een geldige index van de tensor zijn.
+\[
+    \I = \{\ii \in \N^N | \forall n \in [1, N]: i_n \in [1, I_n]\}
+\]
+
+\todo{Vergelijking met matrix en eventueel vector}
+\todo{Is het correct om te zeggen dat een matrix een tweede-orde tensor is? En omgekeerd?}
+
+Tensoren kunnen met elkaar opgeteld worden. $\tens{A} + \tens{B} = \tens{C}$ als en slechts als:
+\[
+	\forall \ii \in \I: c_\ii = a_\ii + b_\ii
+\]
+
+Het is ook mogelijk om de Frobeniusnorm te nemen van een tensor. Deze norm is gelijk som van de kwadraten van alle elementen van de tensor. Wanneer we over de norm van een tensor spreken, spreken we altijd over de Frobeniusnorm.
+\[
+    ||\tens{T}|| = ||\tens{T}||^2 = \sum_{\ii \in \I} t_\ii^2
+\]
+
+\todo{notaties}
+
+\section{Canonieke Polyadische Decompositie (CPD)}
+We kunnen een tensor $\tens{T}$ benaderen met de Canonieke Polyadische Decompositie, afgekort CPD.\todo{referentie} Deze ontbinden kunnen we als volgt defini\"eren:
+\[
+    t_\ii \approx c_\ii = \sum_{r=1}^{R} \prod_{n=1}^{N} u^{(n)}_{i_{n}r} \qquad \text{met $\ii \in \I$}
+\]
+\todo{Tekening, nog wat uitleg + toepassingen}
+\todo{Naam voor 'u' opzoeken of verzinnen. Misschien factormatrix ofzo}
+\todo{Dat ding van de rank waarbij een tensor 50proc kans benadering exact is.}

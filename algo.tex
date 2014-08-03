@@ -1,0 +1,19 @@
+\chapter{Algoritme}
+\todo{Eventueel meervoud}
+\label{h:algo} 
+
+\begin{align*}
+    \tens{F} &= \tens{C} - \tens{T}\\
+    \tens{F} &= \left( \sum_{r=1}^{R} \prod_{n=1}^{N} u^{(n)}_{i_{n}r} \right) - \tens{T} \qquad \text{met $\ii \in \I$}
+\end{align*}
+
+\begin{align*}
+    g^{(n)}_{ir} 	&= \frac{\partial f}{\partial u^{(n)}_{ir}}\\
+					&=\frac{\partial}{\partial u^{(n)}_{ir}} \frac{1}{2}\sum_{\ii \in \I}\left(c_\ii - t_\ii \right)^2\\
+					&= \frac{1}{2} \sum_{\substack{\ii \in \I\\ \ii_n = i}} \frac{\partial}{\partial u^{(n)}_{ir}} \left(c_\ii - t_\ii \right)^2\\
+					&= \frac{1}{2} \sum_{\substack{\ii \in \I\\ \ii_n = i}} 2 \left(c_\ii - t_\ii \right) \frac{\partial c_\ii}{\partial u^{(n)}_{ir}}\\
+					&=\sum_{\substack{\ii \in \I\\ \ii_n = i}} f_\ii \frac{\partial}{\partial u^{(n)}_{ir}} \sum_{r'=1}^{R} \prod_{n'=1}^{N} u^{(n')}_{i_{n'}r'}\\
+					&=\sum_{\substack{\ii \in \I\\ \ii_n = i}} f_\ii \prod_{\substack{n'=1\\n'\neq n}}^{N} u^{(n')}_{i_{n'}r}\\
+\end{align*}
+\todo{toepassen op 3D om te verduidelijke / eerst uitwerken voor 3D}
+\todo{algemeen alles voor 3D doen}

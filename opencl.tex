@@ -1,0 +1,77 @@
+\chapter{OpenCL}
+\label{h:opencl} 
+
+OpenCL is een framework voor het uitvoeren van parallelle berekeningen. Deze berekeningen kunnen uitgevoerd worden op \'e\'en of meerdere gewone processoren (CPU) of op \'e\'en of meerdere grafische kaarten. Een CPU of een GPU noemen we een apparaat (device).
+
+\section{Het model}
+In dit hoofdstuk beschrijven we de voornaamste OpenCL-concepten. Deze zijn onafhankelijk van het apparaat en zelfs van het soort apparaat.
+\subsection{Verdeling van het werk}
+\todo{Misschien concepten uitleggen adhv het voorbeeld ipv het voorbeeld te gebruiken om de concepten beter uit te leggen}
+Een reeks van een instructies die parallel uitgevoerd kan worden noemen we een kernel. De eenheid van werk dat door een kernel verwerkt wordt noemen we een work-item. Het apparaat voert de kernel, in parallel, uit op de work-items. Een work-item komt dus overeen met \'e\'en thread \todo{Van hier tot einde zin miss weglaten}waarbij elke thread dezelfde kernel uitvoert. Het aantal work-items is meestal afhankelijk van de invoer van het algoritme.
+
+Neem als voorbeeld het optellen van twee vectoren. \vect{c} = \vect{a} + \vect{b}. We kunnen dit op een seri\"ele manier berekenen als volgt:
+\lstset{language=C, basicstyle=\footnotesize\ttfamily, keepspaces=true}
+\begin{lstlisting}
+void sum(const double a[], const double b[],
+        double c[], int N)
+{
+    for(int index = 0; index < N; index++)
+    {
+        c[index] = a[index] + b[index];
+    }
+}
+\end{lstlisting}
+We kunnen dit herschrijven naar:
+\begin{lstlisting}
+void sum(const double a[], const double b[], double c[], int N)
+{
+    for(int index = 0; index < N; index++)
+    {
+        inner(a, b, c, index);
+    }
+}
+void inner(const double a[], const double b[], double c[],
+    const int index)
+{
+    c[index] = a[index] + b[index];
+}
+\end{lstlisting}
+In welke volgorde we de index kiezen maakt eigenlijk niets uit. We kunnen deze berekening dus makkelijk in parallel berekenen.
+Een OpenCL-kernel uit een programma die dezelfde berekening doet kan er als volgt uitzien:
+\begin{lstlisting}
+__kernel void innerKernel(__global const double a[],
+    __global const double b[], __global double c[])
+{
+	int i = get_global_id(0);
+	c[i] = a[i] + b[i];
+}
+\end{lstlisting}
+Het eerste dat opvalt is dat er een paar keywords zoals \naam{\_\_kernel} en \naam{\_\_global} zijn bij gekomen. \naam{\_\_kernel} geef aan dat de functie een kernel is die gelanceerd kan worden. \naam{\_\_global} geeft aan dat het om globaal geheugen gaat. (Zie \ref{h:opencl:geheugen})
+
+Wat echter veel belangrijker is, is dat de parameter \naam{N} verdwenen is. Waar we vroeger \naam{inner} \naam{N} keren na elkaar uitvoerden, gaan we nu \naam{innerKernel} \naam{N} keer in parallel uitvoeren. Er zijn dus \naam{N} work-items. 
+
+\todo{miss dit erbij zetten, misschien laten vallen}Wanneer we een kernel lanceren, geven we ook mee hoeveel work-items het apparaat moet verwerken.
+
+In dit voorbeeld komt \'e\'en element uit de vector overeen met \'e\'en work-item, maar dit moet niet altijd zo zijn. De kernel gebruikt \naam{get\_global\_id(0)} om te achterhalen welk work-item verwerkt wordt.
+
+\todo{ND ruimte uitleggen}
+
+\todo{Work-group uitleggen}
+
+\subsection{Geheugen}
+\label{h:opencl:geheugen}
+OpenCL kent drie soorten geheugen:
+\begin{itemize}
+    \item Privaat geheugen: enkel toegankelijk binnen work-item.
+    \item Lokaal geheugen: gedeeld met alle work-items in binnen een work-group, niet toegankelijk buiten de work-group.
+    \item Globaal geheugen: toegankelijk voor alle work-items.
+\end{itemize}
+
+Gegevens in het RAM-geheugen kunnen enkel gekopi\"eerd worden naar het globaal geheugen. Een work-item kan dan de gegevens lezen uit het globaal geheugen en opslaan in het privaat geheugen. Work-items kunnen ook gegevens schrijven naar het lokaal geheugen. Deze gegevens kunnen dan door andere work-items binnen dezelfde work-group gelezen worden. Het is niet mogelijk om rechtstreeks gegevens uit te wisselen tussen het globaal en het lokaal geheugen. \todo{tekening: GG, WI, WG, LG, PG}
+
+\subsection{Synchronisatie}
+
+\section{<stuff over cpu en gpu>}
+
+
+\section{Architechtuur AMD Radeon HD 6970}

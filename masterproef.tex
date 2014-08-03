@@ -1,3 +1,5 @@
+\input{commands}
+
 \documentclass[master=cws ,masteroption=gs]{kulemt}
 \setup{title={Parallellisatie van berekeningen met matrices via OpenCL},
   author={Daan Wendelen},
@@ -26,6 +28,10 @@
 % Tenslotte wordt hyperref gebruikt voor pdf bestanden.
 % Dit mag verwijderd worden voor de af te drukken versie.
 \usepackage[pdfusetitle,colorlinks,plainpages=false]{hyperref}
+
+\usepackage{amsfonts, amsmath}
+\usepackage{todonotes}
+\usepackage{listings}
 
 %%%%%%%
 % Om wat tekst te genereren wordt hier het lipsum pakket gebruikt.
@@ -64,34 +70,39 @@
 \chapter{Lijst van afkortingen en symbolen}
 \section*{Afkortingen}
 \begin{flushleft}
-  \renewcommand{\arraystretch}{1.1}
-  \begin{tabularx}{\textwidth}{@{}p{12mm}X@{}}
-    LoG   & Laplacian-of-Gaussian \\
-    MSE   & Mean Square error \\
-    PSNR  & Peak Signal-to-Noise ratio \\
-  \end{tabularx}
+	\renewcommand{\arraystretch}{1.1}
+  	\begin{tabularx}{\textwidth}{@{}p{12mm}X@{}}
+    	CPD				& Canonieke Polyadische Decompositie.\\%
+    	CPU				& De gewone processor. (Central processing unit)\\
+    	GPU				& De grafische kaart. (Graphics processing unit)\\
+  	\end{tabularx}
 \end{flushleft}
 \section*{Symbolen}
 \begin{flushleft}
-  \renewcommand{\arraystretch}{1.1}
-  \begin{tabularx}{\textwidth}{@{}p{12mm}X@{}}
-    42    & ``The Answer to the Ultimate Question of Life, the Universe,
-            and Everything'' volgens de \cite{h2g2} \\
-    $c$   & Lichtsnelheid \\
-    $E$   & Energie \\
-    $m$   & Massa \\
-    $\pi$ & Het getal pi \\
-  \end{tabularx}
+	\renewcommand{\arraystretch}{1.1}
+	\begin{tabularx}{\textwidth}{@{}p{12mm}X@{}}
+		$\tensor{C}$	& De CPD benadering van $\tensor{T}$.\\
+		$I$				& $\forall n = 1, \ldots, N: I_n = I$\\
+		$I_n$			& Het aantal elementen in mode $n$.\\
+		$N$				& De orde van een tensor.\\
+		$R$				& De rank van de CPD.\\
+		$\tens{R}$		& De residu-tensor.\\
+		$t_{ijk}$		& Het ($i$, $j$, $k$)-de element van een tensor $\tens{T}$.\\
+		$\tens{T}$		& De tensor die we benaderen.
+	\end{tabularx}
 \end{flushleft}
 
 % Nu begint de eigenlijke tekst
 \mainmatter
 
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{1.5ex plus 0.5ex minus 0.5ex}
+
 \include{inleiding}
-\include{hfdst-1}
-\include{hfdst-2}
+\include{tensor}
+\include{algo}
+\include{opencl}
 % ... en zo verder tot
-\include{hfdst-n}
 \include{besluit}
 
 % Indien er bijlagen zijn:
