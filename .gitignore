@@ -2,3 +2,12 @@
 /masterproef.synctex.gz
 /tmp
 /.texlipse
+*.blg
+*.log
+*.aux
+*.bbl
+*.lof
+*.lot
+*.out
+*.backup
+*.toc

@@ -1,0 +1,98 @@
+\chapter{Kernels}
+\label{h:kernels} 
+
+\todo{enkel 3D}
+\todo{nodige verhouding}
+
+\todo{flop uitleggen}
+\todo{in stapjes bla bla}
+
+\section{Haalbaarheid F}
+\label{h:kernels:f:haal}
+
+\begin{align*}
+	f &= \sum_{i = 1}^I \sum_{j = 1}^I \sum_{k = 1}^I \left( \left( \sum_{r=1}^{R} u^{(1)}_{i r} u^{(2)}_{j r} u^{(3)}_{k r} \right) - t_{ijk}\right)^2 \\
+\end{align*}
+
+Berekening aantal nodige flop voor een optimale implementatie.
+
+\begin{tabular}{|r l|c| c| c|c|}
+\hline
+					&							&	Aantal keren		& flop(sp)	& flop(dp) 	& \# geh. aanvragen	\\
+\hline
+$a_{ij r} $	&$= u^{(1)}_{i r} \cdot%
+u^{(2)}_{j r}$									&	$R \cdot I^2$		& 2 		& 2			&	$2RI$			\\
+$a_{ijk r} $&$= a_{ij r} \cdot u^{(3)}_{k r}$	&	$R \cdot I^3$		& 2			& 2			&	$RI$			\\
+$a_{ijk} $	&$= \sum_{r=1}^{R} a_{ijk r}$		&	$(R - 1) \cdot I^3$	& 0 (MAD)	& 0 (MAD)	&	$0$				\\
+\hline
+$a_{ijk} $	&$= a_{ijk}  - t_{ijk}$				&	$ I^3$				& 0 (MAD)	& 0 (MAD)	&	$I^3$			\\
+$a_{ijk} $	&$= a_{ijk} a_{ijk}$				&	$ I^3$				& 2			& 2			&	0				\\
+$f $		&$= \sum a_{ijk}$					&	$ I^3$				& 0 (MAD)	& 0 (MAD)	&	0				\\
+\hline
+\end{tabular}
+
+We kunnen het algoritme in twee stukken verdelen. De stukken die in O($R \cdot I^3$) keer uitgevoerd worden, en de stukken die $ I^3$ keer worden uitgevoerd. De twee stukken worden in bovenstaande tabel gescheiden door een horizontale lijn.
+
+Voor het eerste stuk is het aantal flop per geheugenoperatie gelijk aan:
+\[
+    \frac{2R (I^2 + I^3)}{3RI} = \frac{2}{3}(I + I^2)
+\]
+
+Voor het tweede stuk is het aantal flop per geheugenoperatie gelijk aan:
+\[
+    \frac{2I^3}{I^3} = 2
+\]
+
+Als $I$ groot genoeg is kan het eerste stuk compenseren voor het tweede stuk. Voor de twee stukken samen is de verhouding gelijk aan:
+\begin{align*}
+    & \frac{2R (I^2 + I^3) + 2I^3}{3RI + I^3}\\
+\end{align*}
+
+Wanneer we dat evalueren voor $I = R = 50$, dan is de verhouding gelijk aan 98,11. Dit is ruim voldoende. We besluiten dat voor bepaalde realistische probleemgroottes het geheugen de rekenkracht niet zal beperken. Het is dus zeker de moeite om het algoritme te parallelliseren.
+
+\section{Indelen NDRange}
+\subsection{Itereren over R}
+Een eerste keuze die we moeten maken is of de index $r$ deel zal uit maken van de NDRange, of dat we binnen de kernel over R zullen itereren.
+
+Stel dat we $r$ indelen op een dimensie van de NDRange. Dan moeten we twee kernels schrijven. Een eerste die $u^{(1)}_{i r} u^{(2)}_{j r} u^{(3)}_{k r}$ uitrekend en een tweede die rest van de berekeningen doet. Door deze opsplitsing ontstaan er $RI^3$ extra schrijfoperaties door de eerste kernel, en nog eens $RI^3$ extra leesoperaties door de tweede kernel. Hierdoor is er ongeveer maar \'e\'en rekenoperatie per geheugenoperatie en dit is onaanvaardbaar. Daarnaast zal er ook veel extra geheugen nodig zijn.
+
+We besluiten dat we over R moeten itereren in de kernel.
+
+\subsection{$\tens{T}$ indelen in de NDRange}
+Nu we weten dat R geen deel zal uitmaken van de NDRange, moeten we T nog indelen. We bespreken twee alternatieven. Het eerste alternatief is dat we \'e\'en dimensie van de NDRange gebruiken en elk work-item laten overeenkomen met een element uit $\tens{T}$. De NDRange wordt dus een 1DRange. Omdat $\tens{T}$ in het geheugen gelineariseerd wordt, zal index van $\tens{T}$ in het geheugen overeenkomen met index van de work-item.
+Het tweede alternatief is dat we alle drie de dimensies van de NDRange gebruiken. Hierbij zullen de drie indices van de work-item overeenkomen met de rijen van de drie factormatrices. De NDRange wordt voor dit alternatief een 3DRange.
+
+
+\todo{Eeste kernels tonen enzo}
+\todo{waarom 64 items/workitems}
+\todo{work-items verspillen}
+\todo{R-lus definieren}
+\todo{nuttige rekenoperatie def.}
+
+Uit de resultaten blijkt dat de 3DRange-versie over het algemeen effici\"enter is dan de 1DRange-versie. Laten we eens de leesoperatie binnen de R-lus van een volledige work-group bekijken. We mogen dit doen omdat de aanvragen gecacht worden in de L1-cache. Het aantal leesoperaties buiten de R-lus is even groot voor beide gevallen.
+
+Stel dat voor alle work-items de tweede-mode-index en derde-mode-index gelijk is en enkel de eerste-mode-index verandert. Dan is het aantal leesoperaties binnen de R-lus gelijk aan $64 + 1 + 1 = 66$ over de hele work-group. Wanneer ook de tweede-mode index verandert gaat dit getal nog verder omhoog. 66 is dus het meest optimistisch aantal geheugenaanvragen.
+
+We kunnen ook hetzelfde doen voor de 3DRange-versie. Het aantal geheugenaanvragen voor een hele work-group binnen de R-lus is gelijk aan $3 \cdot 4 = 12$. Dit is slechts een vijfde van het aantal aanvragen bij de 1D-versie voor dezelfde hoeveelheid rekenwerk. De 1DRange-versie heeft wel het voordeel dat het minder cachegeheugen vereist en minder extra work-items verspilt, maar dit weegt over het algemeen niet op tegen het verschil in aantal geheugenaanvragen.
+
+\todo{def. twee delen van het algoritme}
+
+Laten we even dieper ingaan op de verhouding tussen het aantal nuttige rekenoperaties en het aantal geheugenaanvragen voor een work-group voor de 3DRange-versie.
+\begin{tabular}{|r l|c| c| c|c|}
+\hline
+					&							&	Aantal keren		& flop(sp)	& flop(dp) 	& \# geh. aanvragen	\\
+codefrag			&							&	$64 R$				& 2			& 2			&	$2\cdot4R$		\\
+					&							&	$64 R$				& 2			& 2			& 	$4R$				\\
+					&							&	$64 R$				& 0 (MAD)	& 0 (MAD)	& 	0				\\
+\hline
+					&							& 						& 2			& 1			&					\\
+\end{tabular}
+De verhouding binnen de R-lus is slechts gelijk aan 21,33 \todo eenheid en kan de verhouding van het aantal nuttige rekenoperatie per geheugenaanvragen buiten de R-lus van \todo{invullen} niet opkrikken tot boven de nodige \todo{invullen} voor enkele precisie, of \todo{inv} voor dubbele precisie.
+
+De verhouding voor de volledige kernel is gelijk aan
+\todo{invullen}
+
+\section{$\tens{T}$ lezen na constructie $\tens{C}$}
+In alle voorgaande kernels berekenden we eerst $\tens{C}$ en trokken we dan $\tens{T}$ er van af. Hiervoor moesten we eerst $\tens{C}$ initialiseren naar 0. Misschien kunnen we eerst $\tens{T}$ lezen, en dan in elke iteratie over $R$ het product van de factormatrices aftrekken van $\tens{T}$. Het teken zal dan omgekeerd zijn, maar dat wordt ongedaan gemaakt door het kwadraat te nemen. Het is dan niet nodig om $\tens{C}$ te initialiseren naar 0.
+
+\todo{testresultaten}

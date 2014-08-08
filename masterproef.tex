@@ -72,9 +72,23 @@
 \begin{flushleft}
 	\renewcommand{\arraystretch}{1.1}
   	\begin{tabularx}{\textwidth}{@{}p{12mm}X@{}}
-    	CPD				& Canonieke Polyadische Decompositie.\\%
+		b				& bit\\
+		B				& Byte\\
+    	CPD				& Canonieke Polyadische Decompositie\\
     	CPU				& De gewone processor. (Central processing unit)\\
+    	double			& Drijvendekommagetal met dubbele precisie\\
+    	double2			& Tupel van twee drijvendekommagetallen met dubbele precisie\\
+    	double4			& Tupel van vier drijvendekommagetallen met dubbele precisie\\
+    	float			& Drijvendkommagetal met enkele precisie\\
+    	float2			& Tupel van twee drijvendekommagetallen met enkele precisie\\
+    	float4			& Tupel van vier drijvendekommagetallen met enkele precisie\\
+    	flop			& Drijvendekomma-operatie\\
+    	flop(sp)		& Drijvendekomma-operatie met enkele precisie\\
+    	flop(dp)		& Drijvendekomma-operatie met dubbele precisie\\
+    	GiB				& $1024^3$ bytes\\
     	GPU				& De grafische kaart. (Graphics processing unit)\\
+    	KiB				& $1024$ bytes\\
+    	MiB				& $1024^2$ bytes\\
   	\end{tabularx}
 \end{flushleft}
 \section*{Symbolen}
@@ -82,7 +96,7 @@
 	\renewcommand{\arraystretch}{1.1}
 	\begin{tabularx}{\textwidth}{@{}p{12mm}X@{}}
 		$\tensor{C}$	& De CPD benadering van $\tensor{T}$.\\
-		$I$				& $\forall n = 1, \ldots, N: I_n = I$\\
+		$I$				& $\forall n = 1, \ldots, N: I_n = I$.\\
 		$I_n$			& Het aantal elementen in mode $n$.\\
 		$N$				& De orde van een tensor.\\
 		$R$				& De rank van de CPD.\\
@@ -102,6 +116,7 @@
 \include{tensor}
 \include{algo}
 \include{opencl}
+\include{kernel}
 % ... en zo verder tot
 \include{besluit}
 
