@@ -1,14 +1,13 @@
 \chapter{OpenCL}
 \label{h:opencl} 
-\todo{aangeven voor opencl dat engels gebruikt wordt}
 \todo{PE ook gekend als SC}
-OpenCL is een framework voor het uitvoeren van parallelle berekeningen. Deze berekeningen kunnen uitgevoerd worden op \'e\'en of meerdere gewone processoren (CPU) of op \'e\'en of meerdere grafische kaarten. Een CPU of een GPU noemen we een apparaat (device).
+OpenCL is een framework voor het uitvoeren van parallelle berekeningen. Deze berekeningen kunnen uitgevoerd worden op \'e\'en of meerdere gewone processoren (CPU) of op \'e\'en of meerdere grafische kaarten. Een CPU of een GPU noemen we een apparaat (device). We zullen het OpenCL-jargon niet vertalen naar het Nederlands om verwarring te vermijden.
 
 \section{Het model}
 In dit hoofdstuk beschrijven we de voornaamste OpenCL-concepten. Deze zijn onafhankelijk van het apparaat en zelfs van het soort apparaat.
 \subsection{Verdeling van het werk}
-\todo{Misschien concepten uitleggen adhv het voorbeeld ipv het voorbeeld te gebruiken om de concepten beter uit te leggen}
-Een reeks van een instructies die parallel uitgevoerd kan worden noemen we een kernel. De eenheid van werk dat door een kernel verwerkt wordt noemen we een work-item. Het apparaat voert de kernel, in parallel, uit op de work-items. Een work-item komt dus overeen met \'e\'en thread \todo{Van hier tot einde zin miss weglaten}waarbij elke thread dezelfde kernel uitvoert. Het aantal work-items is meestal afhankelijk van de invoer van het algoritme.
+\subsubsection{Work-items}
+Een reeks van een instructies die parallel uitgevoerd kan worden vormen een kernel. De eenheid van werk dat door een kernel verwerkt wordt noemen we een work-item. Het apparaat voert de kernel, in parallel, uit op de work-items. Een work-item komt dus overeen met \'e\'en thread. Het aantal work-items is meestal afhankelijk van de invoer van het algoritme.
 
 Neem als voorbeeld het optellen van twee vectoren. \vect{c} = \vect{a} + \vect{b}. We kunnen dit op een seri\"ele manier berekenen als volgt:
 \lstset{language=C, basicstyle=\footnotesize\ttfamily, keepspaces=true}
@@ -51,13 +50,18 @@ Het eerste dat opvalt is dat er een paar keywords zoals \naam{\_\_kernel} en \na
 
 Wat echter veel belangrijker is, is dat de parameter \naam{N} verdwenen is. Waar we vroeger \naam{inner} \naam{N} keren na elkaar uitvoerden, gaan we nu \naam{innerKernel} \naam{N} keer in parallel uitvoeren. Er zijn dus \naam{N} work-items. 
 
-\todo{miss dit erbij zetten, misschien laten vallen}Wanneer we een kernel lanceren, geven we ook mee hoeveel work-items het apparaat moet verwerken.
-
 In dit voorbeeld komt \'e\'en element uit de vector overeen met \'e\'en work-item, maar dit moet niet altijd zo zijn. De kernel gebruikt \naam{get\_global\_id(0)} om te achterhalen welk work-item verwerkt wordt.
 
-\todo{NDRange uitleggen + NDRange -> 1DRange/3DRange}
+\subsubsection{NDRange}
+In het bovenstaande voorbeeld associ\"eren we met met work-item een nummer. Het eerste work-item krijgt nummer nul, de tweede nummer \'e\'en enzovoorts. Het is ook mogelijk om met elk work-item een tweedimensionale co\"ordinaat te associ\"eren. Dit kan bijvoorbeeld nuttig zijn als we matrices willen optellen. We kunnen dan \'e\'en work-item per element van de matrix nemen. De eerste component van de co\"ordinaat komt dan overeen met de rij, en de tweede met de kolom. OpenCL laat zelfs driedimensionale co\"ordinaten toe, maar geen vierdimensionale co\"ordinaten.
 
-\todo{Work-group uitleggen}
+We zeggen dat het volledige werk overeen komt met de NDRange en dat de NDRange verdeeld wordt in work-items. Wanneer we een kernel lanceren, geven we mee hoe groot de NDRange is. Of met andere woorden, hoeveel work-items er zijn. NDRange staat voor N dimensionele Range. Wanneer we een gewoon getal associ\"eren met een work-item spreken we over een 1DRange. Wanneer we tweedimensionale coordinaten gebruiken spreken we over een 2DRange en bij drie dimensies over een 3DRange. 
+
+\subsubsection{Work-groups}
+OpenCL verplicht ons om de NDRange op te delen een groepen. Zo \'e\'en groep noemen we een work-group. Waarom we deze groepen moeten maken zullen we later zien. Elke work-group is even groot en de grootte moet een gehele deler zijn van de grootte van de volledige NDRange. Dit betekent dat het aantal work-items een geheel veelvoud moet zijn van de grootte van een work-group. AMD beperkt de grootte van de work-groups tot maximaal 256 work-items.
+
+\todo{meerdere dimensies}
+
 
 \subsection{Geheugen}
 \label{h:opencl:geheugen}
@@ -71,15 +75,18 @@ OpenCL kent drie soorten geheugen:
 Gegevens in het RAM-geheugen kunnen enkel gekopi\"eerd worden naar het globaal geheugen. Een work-item kan dan de gegevens lezen uit het globaal geheugen en opslaan in het privaat geheugen. Work-items kunnen ook gegevens schrijven naar het lokaal geheugen. Deze gegevens kunnen dan door andere work-items binnen dezelfde work-group gelezen worden. \todo{tekening: GG, WI, WG, LG, PG}
 
 \subsection{Synchronisatie}
+Niet alle work-items lopen synchroon. Dit kan voor problemen zorgen wanneer een work-item gegevens moet lezen die door een ander work-item geschreven zijn. Daarom is het mogelijk om synchronizatiepunten toe te voegen. Dit kan op twee niveau's. We kunnen alle work-items in een work-group synchroniseren en alle work-items in de NDRange. Wanneer een work-item een synchronizatiepunt tegen komt zal het daar stoppen met uitvoeren tot alle andere work-items stil staan aan het synchronizatiepunt. Dit heeft meestal een negatief effect op de performantie en moet zo veel mogelijk vermeden worden.
 
 \section{<stuff over cpu en gpu>}
 
-
 \section{Architectuur AMD Radeon HD 6970}
-\subsection{Rekending}
-\todo{rename}
+\subsection{Rekeneenheden}
 
-Wanneer we een kernel lanceren gaat de GPU de work-groups verdelen over de compute-units. Elke compute-unit (CU) heeft \'e\'en command-processor die verantwoordelijk is voor het selecteren en ophalen van de instructies. Omdat elke CU een eigen command-processor heeft, werken CU's volledig zelfstandig en los van alle andere CU's. \todo{verschil verschillende producten binnen familie is aantal CU's} De compute-unit bestaat, naast de command-processor, ook uit 16 processing-elementen (PE). Alle processing-elementen binnen een compute-unit worden aangestuurd door de command-processor in de compute-unit. Hierdoor voeren alle processing-elementen altijd dezelfde instructie uit.
+Wanneer we een kernel lanceren gaat de GPU de work-groups verdelen over de compute-units. Elke compute-unit (CU) heeft \'e\'en command-processor die verantwoordelijk is voor het selecteren en ophalen van de instructies. Omdat elke CU een eigen command-processor heeft, werken CU's volledig zelfstandig en los van alle andere CU's. \todo{verschil verschillende producten binnen familie is aantal CU's}
+
+De compute-unit bestaat, naast de command-processor, ook uit 16 processing-elementen (PE). Alle processing-elementen binnen een compute-unit worden aangestuurd door de command-processor in de compute-unit. Hierdoor voeren alle processing-elementen altijd dezelfde instructie uit.
+
+Een processing-element is ook gekend onder de naam stream core (SC). Een ALU wordt in de documentatie soms ook processing element genoemd. In deze tekst zullen we altijd de termen gebruiken zoals ze in bovenstaande paragraaf beschreven zijn.
 
 Zo \'e\'en instructie is 128 bits lang en bestaan eigenlijk uit vier 32-bit instructies. Een 128-bit instructie noemen we een very long instruction word (VILW). Een processing-elementen bestaat uit vier ALU's die elk een 32-bit instructie uitvoeren. Sommige instructies zijn te zwaar om met \'e\'en ALU uit te voeren. Daarom kunnen twee of vier ALU'a samengenomen worden om de zware instructie uit te voeren.\todo{<TODO>}
 

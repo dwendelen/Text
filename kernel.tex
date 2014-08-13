@@ -16,18 +16,18 @@
 
 Berekening aantal nodige flop voor een optimale implementatie.
 
-\begin{tabular}{|r l|c| c| c|c|}
+\begin{tabular}{|r l|c| c|c|}
 \hline
-					&							&	Aantal keren		& flop(sp)	& flop(dp) 	& \# geh. aanvragen	\\
+					&							& flop(sp)			& flop(dp) 			& \# geh. aanvragen	\\
 \hline
 $a_{ij r} $	&$= u^{(1)}_{i r} \cdot%
-u^{(2)}_{j r}$									&	$R \cdot I^2$		& 2 		& 2			&	$2RI$			\\
-$a_{ijk r} $&$= a_{ij r} \cdot u^{(3)}_{k r}$	&	$R \cdot I^3$		& 2			& 2			&	$RI$			\\
-$a_{ijk} $	&$= \sum_{r=1}^{R} a_{ijk r}$		&	$(R - 1) \cdot I^3$	& 0 (MAD)	& 0 (MAD)	&	$0$				\\
+u^{(2)}_{j r}$									& $2 R \cdot I^2$	& $2 R \cdot I^2$	&	$2RI$			\\
+$a_{ijk r} $&$= a_{ij r} \cdot u^{(3)}_{k r}$	& $2 R \cdot I^3$	& $2 R \cdot I^3$	&	$RI$			\\
+$a_{ijk} $	&$= \sum_{r=1}^{R} a_{ijk r}$		& 0 (MAD)			& 0 (MAD)			&	$0$				\\
 \hline
-$a_{ijk} $	&$= a_{ijk}  - t_{ijk}$				&	$ I^3$				& 0 (MAD)	& 0 (MAD)	&	$I^3$			\\
-$a_{ijk} $	&$= a_{ijk} a_{ijk}$				&	$ I^3$				& 2			& 2			&	0				\\
-$f $		&$= \sum a_{ijk}$					&	$ I^3$				& 0 (MAD)	& 0 (MAD)	&	0				\\
+$a_{ijk} $	&$= a_{ijk}  - t_{ijk}$				& 0 (MAD)			& 0 (MAD)			&	$I^3$			\\
+$a_{ijk} $	&$= a_{ijk} a_{ijk}$				& $2 I^3$			& $2 I^3$			&	0				\\
+$f $		&$= \sum a_{ijk}$					& 0 (MAD)			& 0 (MAD)			&	0				\\
 \hline
 \end{tabular}
 
@@ -50,7 +50,15 @@ Als $I$ groot genoeg is kan het eerste stuk compenseren voor het tweede stuk. Vo
 
 Wanneer we dat evalueren voor $I = R = 50$, dan is de verhouding gelijk aan 98,11. Dit is ruim voldoende. We besluiten dat voor bepaalde realistische probleemgroottes het geheugen de rekenkracht niet zal beperken. Het is dus zeker de moeite om het algoritme te parallelliseren.
 
-\section{Indelen NDRange}
+%\section{Indelen NDRange}
+\section{Een eerste kernel}
+De uiteindelijke kernel is een combinatie van vele optimalisaties. Om de lezer niet te overweldigen zullen we de kernel stap voor stap opbouwen. Bij elke stap zullen we ook meten hoeveel winst we met elke stap maken.\todo{punten kiezen en keuze motiveren}
+
+Zie \todo{ref} voor de eerste versie van de kernel. We gaan nu elk onderdeel van de kernel toelichten.
+
+\subsection{Voor de R-lus}
+
+
 \subsection{Itereren over R}
 Een eerste keuze die we moeten maken is of de index $r$ deel zal uit maken van de NDRange, of dat we binnen de kernel over R zullen itereren.
 
@@ -58,7 +66,8 @@ Stel dat we $r$ indelen op een dimensie van de NDRange. Dan moeten we twee kerne
 
 We besluiten dat we over R moeten itereren in de kernel.
 
-\subsection{$\tens{T}$ indelen in de NDRange}
+%\subsection{$\tens{T}$ indelen in de NDRange}
+\subsection{3DRange}
 Nu we weten dat R geen deel zal uitmaken van de NDRange, moeten we T nog indelen. We bespreken twee alternatieven. Het eerste alternatief is dat we \'e\'en dimensie van de NDRange gebruiken en elk work-item laten overeenkomen met een element uit $\tens{T}$. De NDRange wordt dus een 1DRange. Omdat $\tens{T}$ in het geheugen gelineariseerd wordt, zal index van $\tens{T}$ in het geheugen overeenkomen met index van de work-item.
 Het tweede alternatief is dat we alle drie de dimensies van de NDRange gebruiken. Hierbij zullen de drie indices van de work-item overeenkomen met de rijen van de drie factormatrices. De NDRange wordt voor dit alternatief een 3DRange.
 
@@ -78,21 +87,35 @@ We kunnen ook hetzelfde doen voor de 3DRange-versie. Het aantal geheugenaanvrage
 \todo{def. twee delen van het algoritme}
 
 Laten we even dieper ingaan op de verhouding tussen het aantal nuttige rekenoperaties en het aantal geheugenaanvragen voor een work-group voor de 3DRange-versie.
-\begin{tabular}{|r l|c| c| c|c|}
+\begin{tabular}{|r l|c| c|c|}
 \hline
-					&							&	Aantal keren		& flop(sp)	& flop(dp) 	& \# geh. aanvragen	\\
-codefrag			&							&	$64 R$				& 2			& 2			&	$2\cdot4R$		\\
-					&							&	$64 R$				& 2			& 2			& 	$4R$				\\
-					&							&	$64 R$				& 0 (MAD)	& 0 (MAD)	& 	0				\\
+					&							& flop(sp)			& flop(dp) 			& \# geh. aanvragen	\\
+codefrag			&							& $2 \cdot 64 R$	& $2 \cdot 64 R$	&	$2\cdot4R$		\\
+					&							& $2 \cdot 64 R$	& $2 \cdot 64 R$	& 	$4R$			\\
+					&							& 0 (MAD)			& 0 (MAD)			& 	0				\\
 \hline
-					&							& 						& 2			& 1			&					\\
+					&							& 2					& 1					&					\\
 \end{tabular}
 De verhouding binnen de R-lus is slechts gelijk aan 21,33 \todo eenheid en kan de verhouding van het aantal nuttige rekenoperatie per geheugenaanvragen buiten de R-lus van \todo{invullen} niet opkrikken tot boven de nodige \todo{invullen} voor enkele precisie, of \todo{inv} voor dubbele precisie.
 
 De verhouding voor de volledige kernel is gelijk aan
 \todo{invullen}
 
+\section{Meer werk per work-item}
+Voorheen kwam \'e\'en work-item overeen met een blokje van $1 \times 1 \times 1$ elementen van $\tens{T}$ en elke work-group met een blokje van $4 \times 4 \times 4$ elementen van $\tens{T}$. We willen het bezettingsgraad opdrijven \todo{def. bezettingsgraad} door een work-group niet met een blokje van $4 \times 4 \times 4$ te laten overeenkomen, maar met een blok van $8 \times 8 \times 8$ of zelfs $16 \times 16 \times 16$. Een work-item zal dan een blok van $2 \times 2 \times 2$ of $4 \times 4 \times 4$ verwerken. We spreken over een 8x8x8 -of over 16x16x16-kernel. De oude versie noemen we een 4x4x4-kernel.
+
+\subsection{Registergeheugen}
+In de R-lus moeten we de elementen van $\tens{C}$ ergens kunnen opslaan. Voor een 16x16x16-kernel die een tensor met dubbele precisie verwerkt hebben we $8$ B/double $\times 16^3$ double/work-group $= 32KiB$. Elke work-item heeft zijn eigen stukje van $\tens{C}$ dat niet gedeeld moet worden met een ander work-item. Daarnaast zijn de indices bij het compilen al gekend. Daarom kiezen we er voor om het stukje van \CC op te slaan in het registergeheugen. Het registergeheugen is 256 KiB groot dus het stukje van \CC past er acht maal in.  Men mag echter niet vergeten dat de andere variabelen ook in het registergeheugen opgeslagen moeten worden. \todo{dit beperkt mogelijk performance voor double kernels} Dit beperkt dus het aantal work-items tot maximaal zeven. \todo{tabel maken}
+
+\todo{<Nazien>}
 \section{$\tens{T}$ lezen na constructie $\tens{C}$}
 In alle voorgaande kernels berekenden we eerst $\tens{C}$ en trokken we dan $\tens{T}$ er van af. Hiervoor moesten we eerst $\tens{C}$ initialiseren naar 0. Misschien kunnen we eerst $\tens{T}$ lezen, en dan in elke iteratie over $R$ het product van de factormatrices aftrekken van $\tens{T}$. Het teken zal dan omgekeerd zijn, maar dat wordt ongedaan gemaakt door het kwadraat te nemen. Het is dan niet nodig om $\tens{C}$ te initialiseren naar 0.
 
 \todo{testresultaten}
+
+Waarom dat zo een klein verschil zo een impact kan hebben kunnen we als volgt verklaren. We veronderstellen dat R groot genoeg is zodat de algoritme in zijn geheel gelimiteerd wordt door de rekenkracht. Het algoritme bestaat uit twee delen: het deel binnen de R-lus dat gelimiteerd is door de rekenkracht en het deel buiten de R-lus dat geheugengelimiteerd is.
+
+Als we eerst T inlezen bestaat het stuk voor de R-lus bijna volledige uit leesoperatie. De grafische kaart zal dan work-groups blijven activeren om de compute-units bezig te houden tot we op de limiet komen. In deze eerste fase wordt misschien het geheugen volledig gebruikt, maar de compute-units hebben amper werk. Er zijn ook veel work-items gelijktijdig actief en ze zitten allemaal in dezelfde fase op een paar instructies na.
+
+Dan komt de tweede fase. Dit is het stuk binnen de R-lus. In deze fase kan het geheugen de compute-units niet meer volgen. We kunnen ook geen extra work-items meer activeren omdat we in de eerste fase al aan de limiet zaten.
+\todo{</Nazien>}
