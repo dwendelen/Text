@@ -32,6 +32,13 @@
 \usepackage{amsfonts, amsmath}
 \usepackage{todonotes}
 \usepackage{listings}
+%\usepackage{natbib}
+\usepackage{graphicx}
+
+\lstset{language=C, basicstyle=\footnotesize\ttfamily, keepspaces=true, breaklines=true, tabsize=4,captionpos=b}
+
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{1.5ex plus 0.5ex minus 0.5ex}
 
 %%%%%%%
 % Om wat tekst te genereren wordt hier het lipsum pakket gebruikt.
@@ -45,9 +52,14 @@
 \begin{document}
 
 \begin{preface}
-  Dit is mijn dankwoord om iedereen te danken die mij bezig gehouden heeft.
-  Hierbij dank ik mijn promotor, mijn begeleider en de voltallige jury.
-  Ook mijn familie heeft mij erg gesteund natuurlijk.
+	Ik wil graag een paar mensen bedanken en ik ga beginnen met mijn promotor Marc Van Barel en mijn begeleider Laurent Sorber. Zonder hun zou deze masterproef er nooit zijn geweest. Ik dank hun voor hun advies en omdat ik altijd bij hun terecht kon met al mijn vragen. Ik wil ook de onderzoeksgroep Numerical Approximation and Linear Algebra Group (NALAG) bedanken voor het ter beschikking stellen van Falcon\footnote{Falcon is een rekenplatform met twee krachtige grafische kaarten en twee krachtige CPU's.}.
+	
+	Naast mijn promotor en begeleider wil ik ook mijn assessoren Philip Dutr\'e en Lieven De Lathauwer bedanken voor de tijd die ze in mijn masterproef gestoken hebben. Ik wil ook een voormalige assessor, Ares Lagae, bedanken voor de kritische feedback tijdens de tussentijdse presentatie.
+
+	Ook dank aan al mijn nalezers voor het nalezen van deze tekst.
+	Omdat studeren niet gratis is, wil ik graag mijn ouders en de Vlaamse belastingsbetalers bedanken voor de financieele ondersteuning van mijn studies.
+	Het studentenleven bestaat uit meer dan alleen studeren. Daarom dank ik de Vlaamse Technische Kring voor het aanbieden van de nodige ontspanning.
+	Tot slot wil ik ook de rest van mijn familie bedanken voor hun steun.
 \end{preface}
 
 \tableofcontents*
@@ -76,6 +88,7 @@
 		B				& Byte\\
     	CPD				& Canonieke Polyadische Decompositie\\
     	CPU				& De gewone processor. (Central processing unit)\\
+    	CU				& Compute-unit\\
     	double			& Drijvendekommagetal met dubbele precisie\\
     	double2			& Tupel van twee drijvendekommagetallen met dubbele precisie\\
     	double4			& Tupel van vier drijvendekommagetallen met dubbele precisie\\
@@ -85,32 +98,39 @@
     	flop			& Drijvendekomma-operatie\\
     	flop(sp)		& Drijvendekomma-operatie met enkele precisie\\
     	flop(dp)		& Drijvendekomma-operatie met dubbele precisie\\
-    	GiB				& $1024^3$ bytes\\
+    	Gi				& $1024^3$\\
     	GPU				& De grafische kaart. (Graphics processing unit)\\
-    	KiB				& $1024$ bytes\\
-    	MiB				& $1024^2$ bytes\\
+    	Ki				& $1024$\\
+    	Mi				& $1024^2$\\
+    	PE				& Processing-element\\
+    	SC				& Stream-core\\
   	\end{tabularx}
 \end{flushleft}
+\newpage
+
 \section*{Symbolen}
 \begin{flushleft}
 	\renewcommand{\arraystretch}{1.1}
 	\begin{tabularx}{\textwidth}{@{}p{12mm}X@{}}
 		$\tensor{C}$	& De CPD benadering van $\tensor{T}$.\\
+		$\tens{F}$		& De residu-tensor.\\
+		$\mGGG$			& De gradi\"entmatrices\\
 		$I$				& $\forall n = 1, \ldots, N: I_n = I$.\\
 		$I_n$			& Het aantal elementen in mode $n$.\\
 		$N$				& De orde van een tensor.\\
 		$R$				& De rank van de CPD.\\
-		$\tens{R}$		& De residu-tensor.\\
 		$t_{ijk}$		& Het ($i$, $j$, $k$)-de element van een tensor $\tens{T}$.\\
-		$\tens{T}$		& De tensor die we benaderen.
+		$t_{\ii}$		& Het $\ii$-de element van een tensor $\tens{T}$. Merk op dat $\ii$ een tupel is.\\
+		$\tens{T}$		& De tensor die we benaderen.\\
+		\UUU{}			& De factormatrices.\\
+		\UU{1}			& De factormatrix die we associ\"eren met mode \'e\'en.\\
 	\end{tabularx}
 \end{flushleft}
 
 % Nu begint de eigenlijke tekst
 \mainmatter
 
-\setlength{\parindent}{0pt}
-\setlength{\parskip}{1.5ex plus 0.5ex minus 0.5ex}
+
 
 \include{inleiding}
 \include{tensor}

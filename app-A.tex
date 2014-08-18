@@ -1,24 +1,23 @@
-\chapter{De eerste bijlage}
+\chapter{Broncode kernels}
+%\section{Kernels om $f(\T, \mUUU)$ te berekenen}
 \label{app:A}
-In de bijlagen vindt men de data terug die nuttig kunnen zijn voor de
-lezer, maar die niet essentieel zijn om het betoog in de normale tekst te
-kunnen volgen. Voorbeelden hiervan zijn bronbestanden,
-configuratie-informatie, langdradige wiskundige afleidingen, enz.
+In hoofdstuk \ref{h:kernels} bouwen we de kernels stap voor stap op. In deze appendix kan u de volledige broncode vinden voor alle besproken kernels. Ze staan in de volgorde waarin ze besproken worden in de tekst. We raden de lezer aan om de broncodes stap voor stap te bestuderen. Zo zal de lezer sneller inzicht krijgen in de geavanceerde kernels.
 
-In een bijlage kunnen natuurlijk ook verdere onderverdelingen voorkomen,
-evenals figuren en referenties\cite{h2g2}.
+\newpage
+\lstinputlisting[caption={Broncode van de eerste kernel.}, label={codeFloat}]{opencl/float.cl}
 
-\section{Meer lorem}
-\lipsum[50]
+\newpage
+\lstinputlisting[caption={Broncode van de eerste kernel met 64 work-items.}, label={codeFloat64}]{opencl/float64.cl}
 
-\subsection{Lorem 15--17}
-\lipsum[15-17]
+\newpage
+\lstinputlisting[caption={Broncode van float4x4x4.}, label={codeFloat4x4x4}]{opencl/float4x4x4.cl}
 
-\subsection{Lorem 18--19}
-\lipsum[18-19]
+\newpage
+\lstinputlisting[caption={Broncode van float8x8x8.}, label={codeFloat8x8x8}]{opencl/float8x8x8.cl}
 
-\section{Lorem 51}
-\lipsum[51]
+\newpage
+\lstinputlisting[caption={Broncode van float16x16x16.}, label={codeFloat16x16x16}]{opencl/float16x16x16.cl}
+
 
 %%% Local Variables: 
 %%% mode: latex
