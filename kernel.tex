@@ -539,16 +539,3 @@ for(int i1 = 0, j = 0; i1 < 2; i1++)
 float sum1 = sum2.x + sum2.y;
 \end{lstlisting}
 
-
-\todo{<Nazien>}
-\section{$\tens{T}$ lezen na constructie $\tens{C}$}
-In alle voorgaande kernels berekenden we eerst $\tens{C}$ en trokken we dan $\tens{T}$ er van af. Hiervoor moesten we eerst $\tens{C}$ initialiseren naar 0. Misschien kunnen we eerst $\tens{T}$ lezen, en dan in elke iteratie over $R$ het product van de factormatrices aftrekken van $\tens{T}$. Het teken zal dan omgekeerd zijn, maar dat wordt ongedaan gemaakt door het kwadraat te nemen. Het is dan niet nodig om $\tens{C}$ te initialiseren naar 0.
-
-\todo{testresultaten}
-
-Waarom dat zo een klein verschil zo een impact kan hebben kunnen we als volgt verklaren. We veronderstellen dat R groot genoeg is zodat de algoritme in zijn geheel gelimiteerd wordt door de rekenkracht. Het algoritme bestaat uit twee delen: het deel binnen de R-lus dat gelimiteerd is door de rekenkracht en het deel buiten de R-lus dat geheugengelimiteerd is.
-
-Als we eerst T inlezen bestaat het stuk voor de R-lus bijna volledige uit leesoperatie. De grafische kaart zal dan work-groups blijven activeren om de compute-units bezig te houden tot we op de limiet komen. In deze eerste fase wordt misschien het geheugen volledig gebruikt, maar de compute-units hebben amper werk. Er zijn ook veel work-items gelijktijdig actief en ze zitten allemaal in dezelfde fase op een paar instructies na.
-
-Dan komt de tweede fase. Dit is het stuk binnen de R-lus. In deze fase kan het geheugen de compute-units niet meer volgen. We kunnen ook geen extra work-items meer activeren omdat we in de eerste fase al aan de limiet zaten.
-\todo{</Nazien>}
