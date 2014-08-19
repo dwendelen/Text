@@ -142,8 +142,16 @@ Deze rekenverhoudingen liggen juist boven de kantelpunten. Merk ook op dat de ra
 %Wanneer we dat evalueren voor $I = R = 50$, dan is de verhouding gelijk aan 98,11. Dit is ruim voldoende. We besluiten dat voor bepaalde realistische probleemgroottes het geheugen de rekenkracht niet zal beperken. Het is dus zeker de moeite om het algoritme te parallelliseren.
 
 %\section{Indelen NDRange}
-\section{De basiskernel (float16x16x16)}
-De basiskernel is een combinatie van vele optimalisaties en beslissingen. Om de lezer niet te overweldigen zullen we de basiskernel stap voor stap opbouwen. Bij elke stap zullen we ook meten hoeveel winst we met elke stap maken.\todo{punten kiezen en keuze motiveren}
+\section{Float4x4x4 kernel}
+De basiskernel is een combinatie van vele optimalisaties en beslissingen. Om de lezer niet te overweldigen zullen we de basiskernel stap voor stap opbouwen. Bij elke stap zullen we ook meten hoeveel winst we met elke stap maken. We zullen de winst meten door de tijd te meten die de kernel nodig heeft om uitgevoerd te worden. We meten in de volgende vier punten:
+\begin{itemize}
+    \item I = 16, R = 16
+    \item I = 16, R = 6000
+    \item I = 320, R = 16
+    \item I = 320, R = 6000
+\end{itemize}
+Door punten te kiezen met een hoge en een lage I en met een hoge en een lage R, kunnen we meer inzicht krijgen in de impact van de optimalisatie bij verschillende waardes van R in I.
+
 
 \subsection{Een eerste kernel}
 Zie \ref{codeFloat} voor de volledige broncode van de eerste versie van de kernel.
@@ -157,14 +165,14 @@ De eerste lijnen zijn de definitie van de kernel en bestaat uit de volgende elem
 	\code{\_\_global const float* U1} & De eerste factormatrix \UU{1}.\\
 	\code{const int R} & De rang van de ontbinding.\\
 	\code{\_\_global float* sum} & Het stukje globaal geheugen waar elke work-group zijn stuk van de som naar wegschrijft.\\
-	\code{const int I1} & Het aantal elementen in mode \'e\'en.\\
+	\code{const int I1} & Het aantal work-items in mode \'e\'en.\\
 	\code{\_\_local float* l} & Het stukje van het lokaal geheugen waar elk work-item zijn stuk van de som naar wegschrijft.\\
 \end{tabular}
 
-In de volgende twee lijnen declarenen we een tijdelijke variabelen (\code{float temp;}) en een stukje registergeheugen waar we \'e\'en element van \CC{} in opslaan. (\code{float c = 0;}) We gebruiken \code{c} ook om het element van \CC{} in op te bouwen.
+In de volgende twee lijnen declarenen we een tijdelijke variabele (\code{float temp;}) en een stukje registergeheugen waar we \'e\'en element van \CC{} in opslaan. (\code{float c = 0;}) We gebruiken \code{c} ook om het element van \CC{} in op te bouwen.
 
 \subsubsection{Itereren over R}
-Stel dat we $r$ indelen volgens een dimensie van de NDRange. Dan moeten we twee kernels schrijven. Een eerste die $u^{(1)}_{i r} u^{(2)}_{j r} u^{(3)}_{k r}$ uitrekent en een tweede die rest van de berekeningen doet. Door deze opsplitsing ontstaan er $RI^3$ extra schrijfoperaties door de eerste kernel en nog eens $RI^3$ extra leesoperaties door de tweede kernel. Hierdoor is er ongeveer maar \'e\'en rekenoperatie per geheugenoperatie en dit is onaanvaardbaar. Daarnaast zal er ook veel extra geheugen nodig zijn. We besluiten dat we over R moeten itereren in de kernel. De lus waarin we itereren over R noemen we de R-lus. \todo{opmaak R / R hernoemen}
+Stel dat we $r$\todo{r/R-mess opkuisen} indelen volgens een dimensie van de NDRange. Dan moeten we twee kernels schrijven. Een eerste die $u^{(1)}_{i r} u^{(2)}_{j r} u^{(3)}_{k r}$ uitrekent en een tweede die rest van de berekeningen doet. Door deze opsplitsing ontstaan er $RI^3$ extra schrijfoperaties door de eerste kernel en nog eens $RI^3$ extra leesoperaties door de tweede kernel. Hierdoor is er ongeveer maar \'e\'en rekenoperatie per geheugenoperatie en dit is onaanvaardbaar. Daarnaast zal er ook veel extra geheugen nodig zijn. We besluiten dat we over R moeten itereren in de kernel. De lus waarin we itereren over R noemen we de R-lus. \todo{opmaak R / R hernoemen}
 
 In de R-lus gaan $c_{ijk} = \sum_{r=1}^{R} u^{(1)}_{i r} u^{(2)}_{j r} u^{(3)}_{k r}$ berekenen. We doen dit door elke iteratie vooruit te springen in de factormatrices. De factormatrices zijn rij-eerst gelineariseerd en elke kolom is een factorvector\todo{define} voor een andere waarde van r\todo{opmaak}. Daarom moeten we $I_n$ geheugenplaatsen vooruitspringen wanneer we r \todo{opmaak} met \'e\'en verhogen.
 
@@ -204,10 +212,10 @@ sum1 = temp * temp;
 l[get_local_id(0)] = sum1;
 \end{lstlisting}
 
-Daarna zal het eerst work-item binnen de work-group al deze waarden optellen. Het optellen van deze waardes kan pas beginnen nadat alle andere work-items $c_{ijk} - t_{ijk}$ weggeschreven hebben. Deze som wordt dan weggeschreven in \code{sum}. Wanneer alle work-groups verwerkt zijn, zal de ondersteunende software \todo{def}, \code{sum} gekopieren naar het RAM geheugen en zal de CPU alles optellen. Het laatste stukje kernel ziet er als volgt uit:
+Daarna zal het eerst work-item binnen de work-group al deze waarden optellen. Het optellen van deze waardes kan pas beginnen nadat alle andere work-items $c_{ijk} - t_{ijk}$ weggeschreven hebben. Deze som wordt dan weggeschreven in \code{sum}. Wanneer alle work-groups verwerkt zijn, zal de ondersteunende software \todo{def}, \code{sum} kopieren naar het RAM geheugen en zal de CPU alles optellen. Het laatste stukje kernel ziet er als volgt uit:
 \begin{lstlisting}
 barrier(CLK_LOCAL_MEM_FENCE);
-if(lIdx == 0)
+if(get_local_id(0) == 0)
 {        
     #pragma unroll
     for(int i = 1; i < get_local_size(0); i++)
@@ -219,16 +227,16 @@ if(lIdx == 0)
 }
 \end{lstlisting}
 
-We doen de finale som niet op de grafische kaart omdat er veel te veel traagheid zit op het globaal geheugen. Wanneer we een getal inladen zal het 400 cycli duren voor we het volgende getal kunnen inladen. Om deze traagheid te maskeren hebben we te veel work-items nodig. Daarnaast is er maar \'e\'en rekenoperatie per geheugenaanvraag waardoor de rekeneenheden\todo{def} lang stil zullen liggen. 
+We doen de finale som niet op de grafische kaart omdat er veel te veel traagheid zit op het globaal geheugen. Wanneer we een getal inladen zal het 400 cycli duren voor we het volgende getal kunnen inladen. Om deze traagheid te maskeren hebben we te veel work-items nodig. Daarnaast is er maar \'e\'en rekenoperatie per geheugenaanvraag waardoor de rekeneenheden lang stil zullen liggen. 
 
-De tijd die nodig is om de getallen in \code{sum} over te zetten en dan te sommeren is niet noodzakelijk verloren. Het is mogelijk om andere berekeningen te doen op de GPU terwijl we \code{sum} overzetten en sommeren. De parameters voor deze berekening kunnen overgezet worden terwijl we f\todo{opmaak} berekenen.
+De tijd die nodig is om de getallen in \code{sum} over te zetten en dan te sommeren is niet noodzakelijk verloren. Het is mogelijk om andere berekeningen te doen op de GPU terwijl we \code{sum} overzetten en sommeren. De parameters voor deze berekening kunnen overgezet worden terwijl we $f$ \todo{opmaak} berekenen op de GPU.
 
 \subsection{64 Work-items per work-group}
 In de eerste kernel kunnen we nog het aantal work-items per work-group vrij kiezen. In de aanloop voor een latere versie gaan we het aantal work-items per work-group vast zetten op 64. We kiezen voor 64 omdat een wavefront bestaat uit exact 64 work-items. Dit betekent dat alle rekeneenheden benut worden. Omdat alle work-items deel uit maken van dezelfde wavefront zullen alle work-items synchroon lopen.
 
-Een nadeel is echter dat het aantal elementen in \TT een geheel veelvoud moet zijn van 64. \todo{enkel geheugen impact}.
+Een nadeel is echter dat het aantal elementen in \TT{} een geheel veelvoud moet zijn van 64. \todo{enkel geheugen impact}.
 
-In de kernel voegen we helemaal bovenaan de volgende lijn toe:\\ \code{\_\_attribute\_\_((reqd\_work\_group\_size(64, 1, 1)))}. Deze lijn verplicht ons om 64 work-items per work-group te gebruiken. Maar het laat de compiler ook toe om optimalisaties te doen. E\'en van de optimalisaties heeft te maken met registerallocatie en wordt beschreven in \todo{ref amd p 6-27}. Een andere optimalisatie heeft te maken met synchronizatiepunten.
+In de kernel voegen we helemaal bovenaan de volgende lijn toe:\\ \code{\_\_attribute\_\_((reqd\_work\_group\_size(64, 1, 1)))}. Deze lijn verplicht ons om 64 work-items per work-group te gebruiken. Maar het laat de compiler ook toe om optimalisaties te doen. E\'en van de optimalisaties heeft te maken met registerallocatie en wordt beschreven in de AMD handleiding\cite[p.~6-27]{ amd}. Een andere optimalisatie heeft te maken met synchronizatiepunten.
 
 Omdat de work-items binnen een work-item synchroon lopen hebben we geen lokale synchronizatiepunten meer nodig. De compiler zal dit optimaliseren door deze punten te verwijderen. We verwijderen ze echter niet in de code omdat de kernel dan niet meer compatibel is met andere apparaten. Een voorbeeld van zo een ander apparaat is de CPU. De CPU werkt niet met wavefronten en heeft dus de synchronizatiepunten wel nodig.
 
@@ -252,7 +260,7 @@ Niet alleen de kernel kan optimalisaties doen. Wij kunnen dat ook. Omdat we wete
 \begin{lstlisting}
 //Old
 barrier(CLK_LOCAL_MEM_FENCE);
-if(lIdx == 0)
+if(get_local_id(0) == 0)
 {        
     for(int i = 1; i < get_local_size(0); i++)
     {
@@ -263,7 +271,7 @@ if(lIdx == 0)
 }
 //New
 barrier(CLK_LOCAL_MEM_FENCE);
-if(lIdx == 0)
+if(get_local_id(0) == 0)
 {        
     #pragma unroll
     for(int i = 1; i < 64; i++)
@@ -287,6 +295,8 @@ We gebruiken \code{\#pragma unroll} omdat dit minder schrijfwerk en beter aanpas
 \todo{measure}
 
 Zie \ref{codeFloat64} voor de volledig broncode van de kernel.
+
+We gaan deze kernel vergelijken met de versie waarbij men de grootte van het wavefront 
 
 \subsection{float4x4x4}
 In de laatste versie van de kernel gebruikten we \'e\'en dimensie van de NDRange. Elke work-item komt overeenkomen met een element uit $\tens{T}$. We spreken over een 1DRange.
@@ -332,27 +342,35 @@ Wanneer we de som maken, slaan we de deelsommen op in het lokaal en in het globa
 \begin{lstlisting}
 //Old
 l[get_local_id(0)] = sum1;
+	
+barrier(CLK_LOCAL_MEM_FENCE);
+if(get_local_id(0) == 0)
+{        
+	...
+	sum[get_group_id(0)] = sum1;
+}
 
 //New
 int lIdx = get_local_id(0) + 4 * get_local_id(1) + 16 * get_local_id(2);
 l[lIdx] = sum1;
-\end{lstlisting}
-\begin{lstlisting}
-//Old
-sum[get_group_id(0)] = sum1;
 
-//New
-int gId = get_group_id(0) + get_num_groups(0) * (get_group_id(1) + get_num_groups(1) * get_group_id(2));
-sum[gId] = sum1;
+barrier(CLK_LOCAL_MEM_FENCE);
+if(lIdx == 0)
+{        
+	...
+	int gId = get_group_id(0) + get_num_groups(0) * (get_group_id(1) + get_num_groups(1) * get_group_id(2));
+	sum[gId] = sum1;
+}
 \end{lstlisting}
+
 
 Zie \ref{codeFloat4x4x4} voor de volledige code.
 
-\todo{Eeste kernels tonen enzo}
+%\todo{Eeste kernels tonen enzo}
 \todo{waarom 64 items/workitems}
 \todo{work-items verspillen}
-\todo{R-lus definieren}
-\todo{nuttige rekenoperatie def.}
+%\todo{R-lus definieren}
+%\todo{nuttige rekenoperatie def.}
 
 Uit de resultaten blijkt dat de 3DRange-versie over het algemeen effici\"enter is dan de 1DRange-versie. Laten we eens de leesoperatie binnen de R-lus van een volledige work-group bekijken. We mogen dit doen omdat de aanvragen gecacht worden in de L1-cache. Het aantal leesoperaties buiten de R-lus is even groot voor beide gevallen.
 
@@ -363,25 +381,164 @@ We kunnen ook hetzelfde doen voor de 3DRange-versie. Het aantal geheugenaanvrage
 \todo{def. twee delen van het algoritme}
 
 Laten we even dieper ingaan op de rekenverhouding voor een work-group voor de 3DRange-versie.
-\begin{tabular}{|r l|c| c|c|}
-\hline
-					&							& flop(sp)			& flop(dp) 			& \# geh. aanvragen	\\
-codefrag			&							& $2 \cdot 64 R$	& $2 \cdot 64 R$	&	$2\cdot4R$		\\
-					&							& $2 \cdot 64 R$	& $2 \cdot 64 R$	& 	$4R$			\\
-					&							& 0 (MAD)			& 0 (MAD)			& 	0				\\
-\hline
-					&							& 2					& 1					&					\\
-\end{tabular}
-De rekenverhoudingen binnen de R-lus is slechts gelijk aan 21,33 flop(sp)/float en 21,33 flop(dp)/double. Dit kan de rekenverhouding van het stuk buiten de R-lus van \todo{invullen} niet opkrikken tot boven de kantelpunten (\todo{fill in} en \todo{fill in}).
 
-De rekenverhouding voor de volledige kernel is gelijk aan
+\begin{tabular}{|l|c| c|c|}
+\hline
+									& flop(sp)			& flop(dp) 			& \# geh. aanvragen	\\
+\hline
+\code{temp = U1[idxU1];}			& 					& 					&	$4R$			\\
+\code{temp = temp * U2[idxU2];}		& $2 \cdot 64 R$	& $2 \cdot 64 R$	&	$4R$			\\
+\code{temp = temp * U3[idxU3];}		& $2 \cdot 64 R$	& $2 \cdot 64 R$	& 	$4R$			\\
+\code{c += temp;}					& 0 (MAD)			& 0 (MAD)			& 					\\
+\hline
+\code{temp = c - T[idxT];}			& $2 \cdot 64$		& $1 \cdot 64$		&	$64$			\\
+\code{sum1 = temp * temp;}			& $2 \cdot 64$		& $2 \cdot 64$		&					\\
+\code{sum1 += l[i];}				& $2 \cdot 63$		& $1 \cdot 63$		&					\\
+\code{sum[gId] = sum1;}				& 					&					& 	$1$				\\
+\hline
+\end{tabular}
+
+De rekenverhoudingen binnen de R-lus is slechts gelijk aan 21,33 flop(sp)/float en 21,33 flop(dp)/double. Dit kan de rekenverhouding van het stuk buiten de R-lus van 5,88 flop(sp)/float en 3,92 flop(dp)/double niet opkrikken tot boven de kantelpunten van 61,43 flop(sp)/float en 30,71 flop(dp)/double. Er is dus nog veel ruimte voor verbeteringen.
 \todo{invullen}
 
-\subsection{Float8x8x8 en float16x16x16}
-In float4x4x4 komt \'e\'en work-item overeen met een blokje van $1 \times 1 \times 1$ elementen van $\tens{T}$ en elke work-group met een blokje van $4 \times 4 \times 4$ elementen van $\tens{T}$. We willen het bezettingsgraad opdrijven \todo{def. bezettingsgraad} door een work-group niet met een blokje van $4 \times 4 \times 4$ te laten overeenkomen, maar met een blok van $8 \times 8 \times 8$ of zelfs $16 \times 16 \times 16$. Een work-item zal dan een blok van $2 \times 2 \times 2$ of $4 \times 4 \times 4$ verwerken. We spreken over een 8x8x8 -of over 16x16x16-kernel. De oude versie noemen we een 4x4x4-kernel.
+\section{Float8x8x8 en float16x16x16}
+In float4x4x4 komt \'e\'en work-item overeen met een blokje van $1 \times 1 \times 1$ elementen van $\tens{T}$ en elke work-group met een blokje van $4 \times 4 \times 4$ elementen van $\tens{T}$. We willen de rekenverhouding opdrijven door een work-group niet met een blokje van $4 \times 4 \times 4$ te laten overeenkomen, maar met een blok van $8 \times 8 \times 8$ of zelfs $16 \times 16 \times 16$ elementen. Een work-item zal dan een blok van $2 \times 2 \times 2$ of $4 \times 4 \times 4$ elementen verwerken. We spreken over de 8x8x8 -of over de 16x16x16-kernel. De oude versie noemen we de 4x4x4-kernel.
 
-\subsubsection{Registergeheugen}
-In de R-lus moeten we de elementen van $\tens{C}$ ergens kunnen opslaan. Voor een 16x16x16-kernel die een tensor met dubbele precisie verwerkt hebben we $8$ B/double $\times 16^3$ double/work-group $= 32KiB$. Elke work-item heeft zijn eigen stukje van $\tens{C}$ dat niet gedeeld moet worden met een ander work-item. Daarnaast zijn de indices bij het compilen al gekend. Daarom kiezen we er voor om het stukje van \CC op te slaan in het registergeheugen. Het registergeheugen is 256 KiB groot dus het stukje van \CC past er acht maal in.  Men mag echter niet vergeten dat de andere variabelen ook in het registergeheugen opgeslagen moeten worden. \todo{dit beperkt mogelijk performance voor double kernels} Dit beperkt dus het aantal work-items tot maximaal zeven. \todo{tabel maken}
+
+
+\subsection{Registergeheugen}
+In de R-lus moeten we de elementen van $\tens{C}$ ergens kunnen opslaan. Voor een 16x16x16-kernel die een tensor met dubbele precisie verwerkt hebben we $8$ B/double $\times 16^3$ double/work-group $= 32KiB$. Elke work-item heeft zijn eigen stukje van $\tens{C}$ dat niet gedeeld moet worden met een ander work-item. Daarnaast zijn de indices bij het compilen al gekend. Daarom kiezen we er voor om het stukje van \CC{} op te slaan in het registergeheugen. Het registergeheugen is 256 KiB groot dus het stukje van \CC{} past er acht maal in.  Men mag echter niet vergeten dat de andere variabelen ook in het registergeheugen opgeslagen moeten worden. \todo{dit beperkt mogelijk performance voor double kernels} Dit beperkt dus het aantal wavefronten tot een maximum van zeven. \todo{tabel maken}
+
+\subsection{De impact op de code}
+We gaan enkel de verschillen tonen tussen de broncode van float4x4x4 en float8x8x8. De aanpassingen voor float16x16x16 zijn zeer gelijkaardig. De volledige broncodes voor float8x8x8 en float16x16x16 zijn beschikbaar op respectievelijk \ref{codeFloat8x8x8} en \ref{codeFloat16x16x16}.
+ 
+\subsubsection{De factormatrices}
+In float4x4x4 lezen we in elke iteratie \'e\'en float uit elke factormatrix. In float8x8x8 moeten we nu twee floats uitlezen per iteratie. Daarom veranderen we het type van \code{U1}, \code{U2} en van \code{U3} te naar float2. Omdat \code{I1} (\code{I2}, \code{I3}) gedefini\"eerd is als het aantal work-items in mode \'e\'en (twee, drie), kunnen we op dezelfde manier springen door de factormatrices.
+
+De impact op de code:
+\begin{lstlisting}
+//Old
+...,  __global const float2* U1, ...
+
+//New
+...,  __global const float* U1, ...
+\end{lstlisting}
+
+\todo{We kunnen dit zien als en tensor van 2x2x2-tensoren}
+\subsubsection{Berekenen van \CC{}}
+We moeten nu niet meer \'e\'en element berekenen, maar een blokje van 2x2x2 elementen. Hierdoor wordt \CC{} vergroot van 1 float naar acht floats. Om het ons makkelijk te maken veranderen we het type van \CC{} naar float2. De elementen in \CC{} slaan we op in rij-eerst volgorde. Dit zal het makkelijker maken om achteraf \TT{} van \CC{} af te trekken.
+
+We gaan \CC{} berekenen door in elke iteratie over R het volgende te doen.
+\begin{itemize}
+    \item We lezen eerst de twee floats uit de eerst factormatrix (\code{U1}).
+    \item We lezen de twee floats uit de tweede factormatrix (\code{U2}) en gebruiken die om een 2x2 matrix te maken. We doen dit door de twee floats uit de \code{U1} te vermenigvuldigen met elk element uit \code{U2}.
+    \item We lezen de twee floats uit \code{U3} en vermenigvuldigen beide floats met elk element uit de 2x2 matrix. Dit levert een 2x2x2 tensor op.
+    \item Deze 2x2x2 tensor tellen we op bij \CC{};
+\end{itemize}
+
+De veranderingen in de code:
+\begin{lstlisting}
+//Old
+float temp;
+float c = 0;
+...
+for(int r = 0; r < R; r++)
+{
+	temp = U1[idxU1];
+	temp = temp * U2[idxU2];
+	temp = temp * U3[idxU3];
+
+	c += temp;
+
+//New
+float2 u1;
+float2 u1u2[2];
+float2 c[4];
+float2 temp;
+...
+for(int r = 0; r < R; r++)
+{ 
+	u1 = U1[idxU1];
+
+	temp = U2[idxU2];
+
+	u1u2[0] = u1 * temp.x;
+	u1u2[1] = u1 * temp.y;
+
+	temp = U3[idxU3];
+
+	c[0] += u1u2[0] * temp.x;
+	c[1] += u1u2[1] * temp.x;
+	c[2] += u1u2[0] * temp.y;
+	c[3] += u1u2[1] * temp.y;
+\end{lstlisting}
+
+\subsubsection{\TT{} aftrekken van \CC{}}
+De grootste impact op de code is wellicht wanneer we \TT{} va \CC{} gaan aftrekken.  Net als in de R-lus gaan we rondspringen in het geheugen. Maar deze keer springen we door \TT{}. \todo{ev. tekening} Stel dat we ons op element (0, 0, 0) bevinden en dat \TT{} (16, 10, 90) groot is. Als we naar (1, 0, 0) willen gaan, moeten we gewoon \'e\'en plaats verder gaan.
+
+Als we vanuit (1, 0, 0) naar (0, 1, 0) willen springen, kunnen we eerst terug naar (0, 0, 0) springen en van daaruit naar (0, 1, 0). We kunnen vanuit (0, 0, 0) naar (0, 1, 0) springen door voorbij de 16 elementen in mode \'e\'en te springen. We kunnen ook gewoon rechtstreeks van (1, 0, 0) naar (0, 1, 0) springen door $16-1$ stappen vooruit te springen.
+
+Wanneer we van (0, 1, 0) naar (0, 0, 1) willen springen doen we iets gelijkaardigs. We springen eerst 15 stappen terug en springen dan $16 * 10$ stappen vooruit. Of we springen rechtstreeks van (0, 1, 0) naar (0, 0, 1) gaan door $160 - 15$ stappen vooruit te springen.
+
+In de kernel is het het aantal elementen in mode \'e\'en gelijk aan 2 * \code{I1} omdat \code{I1} gedefini\"eerd is als het aantal work-items in mode \'e\'en en elk work-item een blokje van 2x2x2 elementen verwerkt. De springafstanden zijn:
+\begin{itemize}
+    \item 1
+    \item 2 * \code{I1}
+    \item 2 * \code{I1} * 2 * \code{I2}
+\end{itemize}
+Om \TT makkelijk van \CC af te kunnen trekken, veranderen we het type van \TT naar float2 en delen we de springafstanden door twee. De springafstanden worden hierdoor:
+\begin{itemize}
+	\item 0 (We moeten niet meer vooruitspringen)
+    \item \code{I1}
+    \item 2 * \code{I1} * \code{I2}
+\end{itemize}
+
+De bijhorende aanpassingen in de broncode:
+\begin{lstlisting}
+//Old
+(__global const float* T, ...
+...
+float sum1;
+
+int idxT = get_global_id(0) + I1*get_global_id(1) + I1*I2*get_global_id(2);
+temp = c - T[idxT];
+sum1 = temp * temp;
+
+//New
+(__global const float2* T, ...
+int gId1 = get_global_id(0);
+int gId2 = get_global_id(1);
+int gId3 = get_global_id(2);
+
+int jumpIdxTMode2 = I1;
+int jumpIdxTMode3 = 2*I1*I2;
+
+int idxT = gId1 + 
+	2*gId2 * jumpIdxTMode2 +
+	2*gId3 * jumpIdxTMode3;
+
+int jumpNextIdxTMode2 = jumpIdxTMode2;
+int jumpNextIdxTMode3 = jumpIdxTMode3 - 2*jumpIdxTMode2;
+
+float2 sum2 = 0;
+
+#pragma unroll
+for(int i1 = 0, j = 0; i1 < 2; i1++)
+{
+	#pragma unroll
+	for(int i2 = 0; i2 < 2; i2++, j++)
+	{
+		temp = c[j] - T[idxT];
+		sum2 += temp*temp;
+		
+		idxT += jumpNextIdxTMode2;
+	}
+	idxT += jumpNextIdxTMode3;
+}
+
+float sum1 = sum2.x + sum2.y;
+\end{lstlisting}
+
 
 \todo{<Nazien>}
 \section{$\tens{T}$ lezen na constructie $\tens{C}$}
