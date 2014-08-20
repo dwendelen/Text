@@ -1,6 +1,9 @@
 \chapter{OpenCL}
 \label{h:opencl} 
-OpenCL is een framework voor het uitvoeren van parallelle berekeningen. Deze berekeningen kunnen uitgevoerd worden op \'e\'en of meerdere gewone processoren (CPU) of op \'e\'en of meerdere grafische kaarten. Een CPU of een GPU noemen we een apparaat (device). We zullen het OpenCL-jargon niet vertalen naar het Nederlands om verwarring te vermijden.
+OpenCL is een framework voor het uitvoeren van parallelle berekeningen. Deze berekeningen kunnen uitgevoerd worden op \'e\'en of meerdere gewone processoren (CPU) of op \'e\'en of meerdere grafische kaarten. Een CPU of een GPU noemen we een apparaat (device).
+
+Dit hoofdstuk is een herwerkte versie van de hoofdstukken \'e\'en en zes uit de handleiding van AMD\cite{amd}. We zullen het OpenCL-jargon niet vertalen naar het Nederlands om verwarring te vermijden. 
+
 
 \section{Het model}
 In dit hoofdstuk beschrijven we de voornaamste OpenCL-concepten. Deze zijn onafhankelijk van het apparaat en zelfs van het soort apparaat.
@@ -95,10 +98,10 @@ Niet alle work-items lopen synchroon. Dit kan voor problemen zorgen wanneer een 
 \section{Architectuur AMD Radeon HD 6970}
 \subsection{Rekeneenheden}
 
-Wanneer we een kernel lanceren gaat de GPU de work-groups verdelen over de compute-units. Dit is de taak van de Ultra-Threaded Dispatch Processor (UTDP). De UTDP zal pas nieuwe work-groups toewijzen wanneer de compute-unit tijdelijk geen werk meer heeft.  Wanneer een work-group toegewezen is zeggen we dat de work-group actief is.
+Wanneer we een kernel lanceren gaat de GPU de work-groups verdelen over de compute-units. Dit is de taak van de Ultra-Threaded Dispatch Processor (UTDP). De UTDP zal pas nieuwe work-groups toewijzen wanneer de compute-unit tijdelijk geen werk meer heeft.  Wanneer een work-group toegewezen is zeggen we dat de work-group actief is. 
 
 \label{WGvolg}
-De UTDP zal work-groups in de volgende volgorde activeren. Eerst wordt work-group (0, 0, 0) geactiveerd. Daarna is work-group (1, 0, 0) aan de beurt. Wanneer de UTDP door X-waarden is geroteerd, is het de beurt aan work-item (0, 1, 0). We noemen dit een rij-eerst volgorde.
+De UTDP zal work-groups in de volgende volgorde activeren. Eerst wordt work-group (0, 0, 0) geactiveerd. Daarna is work-group (1, 0, 0) aan de beurt. Wanneer de UTDP door X-waarden is geroteerd, is het de beurt aan work-groep (0, 1, 0). We noemen dit een rij-eerst volgorde. De work-groups worden ook in die volgorde verwijderd. Hierdoor zijn de geactiveerde wavefronten altijd aaneensluitend.\cite[p.~6-8]{amd}
 
 Elke compute-unit (CU) heeft een command-processor die verantwoordelijk is voor het selecteren en ophalen van de instructies. Omdat elke CU een eigen command-processor heeft, werken CU's volledig zelfstandig en los van alle andere CU's.
 
@@ -200,6 +203,8 @@ De verschillende soorten geheugen hebben verschillende groottes en snelheden. We
 Men kan er best voor zorgen dat het aantal work-items in een work-group een geheel veelvoud is van 64. Wanneer dit niet het geval is, zullen wavefronten aangevuld worden met 'lege' work-items. Hierdoor zal de rekenkracht beperkt worden. Stel dat er maar 32 work-items in een work-group zitten. Er zullen dan maar twee van de vier cycli gebruikt worden voor nuttig rekenwerk. De rest van de tijd zal er niets gebeuren. Hierdoor zal de rekenkracht van de GPU halveren.
 
 Het is ook belangrijk om voldoende wavefronten actief te hebben om alle vormen van traagheid te maskeren. Vanaf dat er genoeg wavefronten actief zijn, heeft het geen zin meer om er meer actief te maken. Er zijn echter enkele limieten op het aantal wavefronten die gelijktijdig actief kunnen zijn. Indien er niet genoeg wavefronten zijn zullen zowel de compute-unit als de geheugencontroller stil vallen.
+
+De work-groups, en dus ook de wavefronten, worden rij-eerst geactiveerd en ook in die volgorde verwijderd\cite[p.~6-8]{amd}. Hierdoor zijn de geactiveerde wavefronten altijd aaneensluitend.
 
 \subsubsection{Traagheid maskeren}
 Wanneer we een instructie uitvoeren duurt het acht cycli voor het resultaat ervan beschikbaar is. Een wavefront bestaat uit vier cycli, dus twee wavefronten per compute-unit volstaan om deze traagheid te maskeren.

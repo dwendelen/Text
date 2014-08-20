@@ -474,7 +474,7 @@ for(int r = 0; r < R; r++)
 \end{lstlisting}
 
 \subsubsection{\TT{} aftrekken van \CC{}}
-De grootste impact op de code is wellicht wanneer we \TT{} va \CC{} gaan aftrekken.  Net als in de R-lus gaan we rondspringen in het geheugen. Maar deze keer springen we door \TT{}. \todo{ev. tekening} Stel dat we ons op element (0, 0, 0) bevinden en dat \TT{} (16, 10, 90) groot is. Als we naar (1, 0, 0) willen gaan, moeten we gewoon \'e\'en plaats verder gaan.
+De grootste impact op de code is wellicht wanneer we \TT{} va \CC{} gaan aftrekken.  Net als in de R-lus gaan we rondspringen in het geheugen. Maar deze keer springen we door \TT{}. \todo{ev. tekening} We noemen dit stuk code daarom de T-lus. Stel dat we ons op element (0, 0, 0) bevinden en dat \TT{} (16, 10, 90) groot is. Als we naar (1, 0, 0) willen gaan, moeten we gewoon \'e\'en plaats verder gaan.
 
 Als we vanuit (1, 0, 0) naar (0, 1, 0) willen springen, kunnen we eerst terug naar (0, 0, 0) springen en van daaruit naar (0, 1, 0). We kunnen vanuit (0, 0, 0) naar (0, 1, 0) springen door voorbij de 16 elementen in mode \'e\'en te springen. We kunnen ook gewoon rechtstreeks van (1, 0, 0) naar (0, 1, 0) springen door $16-1$ stappen vooruit te springen.
 
@@ -539,3 +539,144 @@ for(int i1 = 0, j = 0; i1 < 2; i1++)
 float sum1 = sum2.x + sum2.y;
 \end{lstlisting}
 
+\todo{snelle test}
+
+\section{Herschikken van \TT{} in het geheugen}
+\subsection{Het probleem}
+Stel dat we de float16x16x16 kernel gebruiken en dat \TT{} (80, 80, 80) groot is. \code{I1} is in dit geval gelijk aan 20. Beschouw drie work-items (0, 0, 0) en (0, 1, 0) en (0, 0, 1) die zich binnen dezelfde work-group bevinden. Het eerste element van \TT{} bevinden zich respectievelijk op de geheugenplaatsen 0, 20 en 800. Merk op dat een geheugenplaats 4 * 4 bytes breed is en dat er een volledige float4 in past.
+
+Een float4 is 16 bytes breed en een kanaal is 256 bytes breed. Er passen dus 16 float4's in een kanaal. Het eerste element van (0, 0, 0) bevindt zich in het eerste kanaal, op de eerste bank. Het eerste element van (0, 1, 0) bevindt zich in het tweede kanaal. ($20 / 16 = 1,25$) Het eerste element van work-item (0, 0, 1) bevindt zich het derde kanaal. ($(800 / 16) mod 8 = 2)$
+
+We zien dat verschillende work-items verschillende kanalen aanspreken. Men kan nagaan dat een work-group alle kanalen gebruikt. Omdat alle work-items synchroon lopen zal het traagste kanaal bepalen hoe snel alle work-items verwerkt worden. De kans dat een work-item betrokken is bij een kanaal-conflict is ook een stuk groter. Dit heeft invloed op de performantie omdat een compute-unit geen ander wavefront kan uitvoeren zolang er kanaal-conflicten zijn. Merk op dat alle andere work-items ook te kampen hebben met dezelfde problemen.
+
+Merk op dat er ook waardes voor $I1$ zijn waarbij float16x16x16 conflict-vrij is. Zo een waarde is bijvoorbeeld 128. Wanneer we 128 vooruitspringen, springen we over alle acht kanalen. Een \code{I1} van 128 komt overeen met 512 floats. Er zijn ook waardes zoals 64 waarbij elke work-item maar twee kanalen gebruikt waardoor het probleem zich maar beperkt voordoet.
+
+\subsection{Aaneengesloten blokken}
+Er zijn verschillende manieren om dit probleem op te lossen. We bespreken nu een eerste oplossing. We gaan de herschikking toepassen op float8x8x8 maar we kunnen die ook op andere kernels toepassen.
+
+Elke 8x8x8 blok gaan we opslaan in een aaneengesloten blok in het geheugen. We gebruiken de eerste 512 geheugenplaatsen voor het eerste blokje van 8x8x8. De volgende 512 voor het volgende blokje. Hierbij ordenen de 8x8x8 blokken in een rij-eerst volgorde. Elk work-item haalt in iedere iteratie van de T-lus een float2 op. We gaan alle float2's die gelijktijdig gelezen worden, opslaan in een aaneengesloten blok. Figuur \ref{remap8} illustreert deze schikking.
+
+\begin{figure}
+\centering
+\includegraphics[width=\textwidth, trim=0 16cm 4cm 0, clip]{remap8}
+\caption{\label{remap8}Schikking van \TT{} voor float8x8x8 met aaneengesloten blokken.}
+\end{figure}
+
+\todo{babbelen over waarom}
+
+\subsubsection{Impact op de code}
+Omdat de elementen van \TT{} op een andere plaats staan, moeten nu op een andere manier rondspringen. Voor deze herschikking moeten elke iteratie gewoon 64 stappen vooruit springen. De beginplaatsen berekenen we als volgt. We bepalen eerst in welke blok de gegevens voor de work-group zit en berekenen het adres voor het eerste element van die blok. Vervolgens tellen we het volgnummer van het work-item op bij dit adres. De aangepaste kernel noemen we float8x8x8R. (float8x8x8 Remapped) De volledige broncode is beschikbaar appendix \refCode{float8x8x8R}. De code van float16x16x16R is beschikbaar in appendix \refCode{float16x16x16R}. De aanpassingen voor float8x8x8 zijn de volgende:
+\begin{lstlisting}
+//Old
+int gId1 = get_global_id(0);
+int gId2 = get_global_id(1);
+int gId3 = get_global_id(2);
+
+int jumpIdxTMode2 = I1;
+int jumpIdxTMode3 = 2*I1*I2;
+
+int idxT = gId1 + 
+	2*gId2 * jumpIdxTMode2 +
+	2*gId3 * jumpIdxTMode3;
+
+int jumpNextIdxTMode2 = jumpIdxTMode2;
+int jumpNextIdxTMode3 = jumpIdxTMode3 - 2*jumpIdxTMode2;
+
+float2 sum2 = 0;
+
+#pragma unroll
+for(int i1 = 0, j = 0; i1 < 2; i1++)
+{
+	#pragma unroll
+	for(int i2 = 0; i2 < 2; i2++, j++)
+	{
+		temp = c[j] - T[idxT];
+		sum2 += temp*temp;
+		
+		idxT += jumpNextIdxTMode2;
+	}
+	idxT += jumpNextIdxTMode3;
+}
+
+//New
+int lIdx = get_local_id(0) + 4 * get_local_id(1) + 16 * get_local_id(2);
+int gIdx = get_group_id(0) + get_num_groups(0) * (get_group_id(1) + get_num_groups(1) * get_group_id(2));
+
+int idxT =  lIdx + 256 * gIdx;   
+
+float2 sum2 = 0;
+
+#pragma unroll
+for(int i = 0; i < 4; i++)
+{
+	temp = c[j] - T[idxT];
+	sum2 += temp*temp;
+		
+	idxT += 64;
+}
+\end{lstlisting}
+Bij het berekenen van de som verwijderen we de volgende twee lijnen omdat we die al berekenend hebben vlak voor de T-lus.
+\begin{lstlisting}
+int lIdx = get_local_id(0) + 4 * get_local_id(1) + 16 * get_local_id(2);
+...
+int gId = get_group_id(0) + get_num_groups(0) * (get_group_id(1) + get_num_groups(1) * get_group_id(2));
+\end{lstlisting}
+
+\todo{Herschikking verwaarloosbaar}
+
+\subsubsection{Herschikking}
+We moeten de elementen van \TT{} eerst herschikken. Net als bij de berekening van $f$ gaan we work-item laten overeenkomen met een 2x2x2 blok in \TT{}. De kernel die \TT{} herschikt bestaat gewoon uit een T-lus. Deze T-lus is een samensmelting van de T-lussen van float8x8x8 en float8x8x8R.
+
+We berekenen eerst het beginpunt en de sprongafstanden in \TT{}. We berekenen ook het beginpunt in het herschikte geheugen.
+Deze berekeningen zijn identiek aan de berekeningen in float8x8x8 en float8x8x8R. Dan gaan we in de T-lus elk element herschikken.
+
+De kernel die \TT{} herschikt noemen we float8x8x8Mapper. De broncode voor float8x8x8Mapper en float16x16x16Mapper kan men terugvinden in appendices \refCode{float8x8x8Mapper} en \refCode{float16x16x16Mapper}.
+
+\subsection{Isoleren van geheugenaanvragen}
+We stellen ook een tweede herschikking voor. Het doel is dat alle work-items slechts \'e\'en kanaal gebruiken. We gaan dit toepassen op float16x16x16, maar we kunnen dit met enkele aanpassingen ook gebruiken voor andere kernels. De aangepaste float16x16x16 kernel noemen we float16x16x16I (float16x16x16 Isolated).
+
+Een kanaal is 256 B breed. Dat zijn 16 float4's. Dit is gelijk aan het aantal float4's dat een work-item verwerkt. We gaan een strook van 16 float4's voorzien voor elke work-item. De eerste 256 B van het geheugen wijzen we toe aan het eerste work-item van de eerste work-group. De volgende 256B bevinden zich op het volgende kanaal en zijn dus voor het eerste work-item van de tweede work-group. Nadat er acht kanalen en acht work-groups gepasseerd zijn, is het de beurt aan het tweede work-item van de eerste work-group. Deze zit in hetzelfde kanaal als het eerste work-item maar wel in een andere bank.
+
+De volgende vraag die we ons stellen is waar we het eerste work-item van de negende work-group moeten opslaan. De negende work-group is pas aan de beurt wanneer alle work-items van alle acht work-items geplaatst zijn. We noemen een groep van acht work-items een acht-groep. Een acht-groep bevat $16 * 16 * 16 * 8$ = 32Ki floats. Dit zijn 8192 float4's.
+
+We delen dus het geheugen op in blokken van 8192 float4's lang. Deze blokken noemen we een acht-groepblok. Het geheugen in de acht-groepblok is toegewezen aan een acht-groep dat bestaat uit acht work-groups. De acht-groepblok is verdeeld in stroken die elk 16 float4's lang zijn. We noemen dit een kanaalstrook. Alle kanaalstroken binnen dezelfde acht-groepblok die bediend worden door hetzelfde kanaal vormen een kanaalblok. We wijzen de kanaalblokken toe aan de work-groups. Elke kanaalstrook wordt toegewezen aan een work-item binnen de work-group. Deze concepten worden geillustreerd in figuur \ref{iso}.
+
+\begin{figure}
+\centering
+\includegraphics[trim=0 23cm 6.5cm 0, clip]{iso}
+\caption{\label{iso}Onderverdeling van het geheugen bij een herschikking zonder kanaalconflicten.}
+\end{figure}
+
+Voor een willekeurig work-item bepalen we de beginplaats als volgt :
+\begin{itemize}
+    \item Lineariseer het volgnummer van de work-groep en deel dit getal door acht. Rond dit getal af naar beneden. Dit bepaalt in welke acht-groep het work-item zit. Vermenigvuldig het afgeronde getal met 8192. Dit is het beginadres van de acht-groepblok.
+    \item Bepaal het kanaal waarin de work-group thuis hoort. Dit is gelijk aan het gelineariseerde volgnummer van de work-groep modulo acht. Vermenigvuldig dit getal met 16 en tel dit op bij het beginadres van de acht-groepblok. We zitten nu in de juiste kanaalblok. We noemen dit het beginadres van de kanaalblok.
+    \item Lineariseer het volgnummer van de work-item binnen de work-groep en vermenigvuldig dit met 128. Tel dit getal op bij het beginadres van de kanaalblok. We zitten nu in het beginadres van de kanaalstrook die toegewezen is aan het work-item.
+\end{itemize}
+
+\subsubsection{Impact op de code}
+We gaan vertrekken vanuit float16x16x16R en niet vanuit float16x16x16. We doen dit omdat  float16x16x16I meer gemeenschappelijk heeft met  float16x16x16R dan met float16x16x16. De aanpassingen die we aan float16x16x16R doen zijn identiek dezelfde als de aanpassingen die we aan float16x16x16Mapper moeten doen om float16x16x16MapperI te krijgen. Zie \refCode{float16x16x16I} en \refCode{float16x16x16MapperI} voor de broncode voor respectievelijk float16x16x16I en float16x16x16MapperI.
+
+\begin{lstlisting}
+//Old
+int idxT =  lIdx + 1024 * gIdx;
+...
+#pragma unroll
+for(int i = 0; i < 16; i++)
+{
+	...
+	idxT += 64;
+}
+
+//New
+int channel = gIdx % 8;
+
+int idxT =  8192 * (gIdx/8) + 16*channel + 128*lIdx; 
+...
+#pragma unroll
+for(int i = 0; i < 16; i++)
+{
+	...
+	idxT++;
+}
+\end{lstlisting}
