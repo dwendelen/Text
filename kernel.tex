@@ -398,6 +398,8 @@ Laten we even dieper ingaan op de rekenverhouding voor een work-group voor de 3D
 \hline
 \end{tabular}
 
+\label{rekenFl4}
+
 De rekenverhoudingen binnen de R-lus is slechts gelijk aan 21,33 flop(sp)/float en 21,33 flop(dp)/double. Dit kan de rekenverhouding van het stuk buiten de R-lus van 5,88 flop(sp)/float en 3,92 flop(dp)/double niet opkrikken tot boven de kantelpunten van 61,43 flop(sp)/float en 30,71 flop(dp)/double. Er is dus nog veel ruimte voor verbeteringen.
 \todo{invullen}
 
@@ -538,6 +540,52 @@ for(int i1 = 0, j = 0; i1 < 2; i1++)
 
 float sum1 = sum2.x + sum2.y;
 \end{lstlisting}
+
+\subsubsection{Rekenverhouding}
+In \ref{rekenFl4} blijkt dat float4x4x4 de rekenkracht van de grafische kaart niet ten volle benut. We gaan nu de rekenverhouding van float8x8x8 en float16x16x16 berekenen.
+
+We beginnen met float8x8x8:
+
+\begin{tabular}{|l|c| c|c|}
+\hline
+									& flop(sp)					& flop(dp) 					& \# geh. aanvragen	\\
+\hline
+\code{u1 = U1[idxU1];}				& 							& 							&	$2 \cdot 4 R$	\\
+\code{temp = U2[idxU2];}			& 							& 							&	$2 \cdot 4 R$	\\
+\code{u1u2 = u1 * temp;}			& $2 \cdot 4 \cdot 64 R$	& $2 \cdot 4 \cdot 64 R$	&					\\
+\code{temp = U3[idxU3];}			& 							& 							&	$2 \cdot 4 R$	\\
+\code{c += u1u2 * temp;}			& $2 \cdot 8 \cdot 64 R$	& $2 \cdot 8 \cdot 64 R$	& 					\\
+\hline
+\code{temp = c - T[idxT];}			& $2 \cdot 8 \cdot 64$		& $1 \cdot 8 \cdot 64$		&	$8 \cdot 64$	\\
+\code{sum2 += temp*temp;}			& $2 \cdot 8 \cdot 64$		& $2 \cdot 8 \cdot 64$		&					\\
+\code{sum1 = sum2.x + sum2.y}		& $2 \cdot 64$				& $1 \cdot 64$				&					\\
+\code{sum1 += l[i];}				& $2 \cdot 63$				& $1 \cdot 63$				&					\\
+\code{sum[gId] = sum1;}				& 							&							& 	$1$				\\
+\hline
+\end{tabular}
+
+Het deel binnen de R-lus heeft rekenverhoudingen van 64 flop(sp)/float en 64 flop(dp)/double. Als we R zeer hoog maken, kan de totale rekenverhouding boven het kantelpunt komen.
+
+We berekenen nu de rekenverhouding voor float16x16x16:
+\begin{tabular}{|l|c| c|c|}
+\hline
+									& flop(sp)					& flop(dp) 					& \# geh. aanvragen	\\
+\hline
+\code{u1 = U1[idxU1];}				& 							& 							&	$4 \cdot 4 R$	\\
+\code{temp = U2[idxU2];}			& 							& 							&	$4 \cdot 4 R$	\\
+\code{u1u2 = u1 * temp;}			& $2 \cdot 16 \cdot 64 R$	& $2 \cdot 16 \cdot 64 R$	&					\\
+\code{temp = U3[idxU3];}			& 							& 							&	$4 \cdot 4 R$	\\
+\code{c += u1u2 * temp;}			& $2 \cdot 64 \cdot 64 R$	& $2 \cdot 64 \cdot 64 R$	& 					\\
+\hline
+\code{temp = c - T[idxT];}			& $2 \cdot 64 \cdot 64$		& $1 \cdot 64 \cdot 64$		&	$64 \cdot 64$	\\
+\code{sum2 += temp*temp;}			& $2 \cdot 64 \cdot 64$		& $2 \cdot 64 \cdot 64$		&					\\
+\code{sum1 = sum2.x + sum2.y}		& $2 \cdot 3 \cdot 64$		& $1 \cdot 3 \cdot 64$		&					\\
+\code{sum1 += l[i];}				& $2 \cdot 63$				& $1 \cdot 63$				&					\\
+\code{sum[gId] = sum1;}				& 							&							& 	$1$				\\
+\hline
+\end{tabular}
+
+We komen uit dat de rekenverhoudingen in de R-lus gelijk is aan 213,33... flop(sp)/float en flop(dp)/double. Als we R hoog maken, kan dit het stuk na de R-lus compenseren. R mag wel een stuk lager liggen dan bij float8x8x8.
 
 \todo{snelle test}
 
@@ -680,3 +728,91 @@ for(int i = 0; i < 16; i++)
 	idxT++;
 }
 \end{lstlisting}
+
+\section{Geschiktheid gradi\"ent}
+We herhalen nog eens hoe we de gradi\"ent van een derde-orde tensor berekenen:
+\begin{align*}
+    g^{(1)}_{ir} =& \sum_{j'}^{I_2}\sum_{k'}^{I_3} f_{ij'k'} u^{(2)}_{j'r} u^{(3)}_{k'r}\\
+    g^{(2)}_{jr} =& \sum_{i'}^{I_1}\sum_{k'}^{I_3} f_{i'jk'} u^{(1)}_{i'r} u^{(3)}_{k'r}\\
+    g^{(3)}_{kr} =& \sum_{i'}^{I_1}\sum_{j'}^{I_2} f_{i'j'k} u^{(1)}_{i'r} u^{(2)}_{j'r}\\
+\end{align*}
+
+We gaan nu de rekenverhouding berekenen. We veronderstellen hierbij dat \FF al berekend is.
+
+\begin{tabular}{|r l|c| c|c|}
+\hline
+					&			& flop(sp)			& flop(dp) 			& \# geh. aanvragen	\\
+\hline
+$a_{j'k'r}$	&$= u^{(2)}_{j'r} u^{(3)}_{k'r}$%
+								& $2 R \cdot I^2$	& $2 R I^2$			&	$2 R I$			\\
+$a_{i'j'k'r}$	&$= f_{ij'k'} \cdot a_{j'k'r}$%
+								& $2 R I^3$			& $2 R I^3$			&	$I^3$			\\
+$g^{(1)}_{ir}$	&$= \sum_{j'}^{I_2}\sum_{k'}^{I_3}a_{i'j'k'r}$%
+								& 0 (MAD)			& 0 (MAD)			&	$R I$			\\
+\hline
+\end{tabular}
+
+De rekenverhouding is gelijk aan:
+\[
+	\frac{2R(I^3 + I^2)}{I^3 + 3RI}
+\]
+
+Voor hoge waarden van $I$ convergeert de rekenverhouding naar $2R$. Dit is ook zichtbaar wanneer we de rekenverhouding plotten in functie van $R$ en $I$. Zie figuur \ref{haalG}.
+
+\begin{figure}
+\centering
+\includegraphics{haalG}
+\caption{\label{haalG}De rekenverhoudingen van de gradi"ent. Het kantelpunt voor de GPU met enkele precisie is getekend met een rode lijn. Het kantelpunt voor dubbele precisie is getekend met een witte lijn.}
+\end{figure}
+
+Wanneer we \ref{haalG} naast \ref{haalF} leggen zien we dat beide grafieken bijna identiek zijn. Laten we de rekenverhouding van $f(\T, \mUUU)$ eens aftrekken van de rekenverhouding van de gradi"ent.
+\begin{align*}
+		&	\frac{2R (I^3 + I^2) + 2I^3}{I^3 + 3RI} - \frac{2R (I^2 + I^3)}{3RI + I^3}\\
+		=&	\frac{2R(I^3 + I^2) + 2I^3 - 2R (I^2 + I^3)}{I^3 + 3RI}\\
+		=&	\frac{2I^3}{I^3 + 3RI}\\
+\approx  &	2
+\end{align*}
+We besluiten hieruit dat de rekenverhoudingen van de gradi"ent twee flop(sp)/float en twee flop(dp)/double lager liggen dan de rekenverhoudingen van $f(\T, \mUUU)$. Twee  is klein tegenover 61,43 flop(sp)/float en 30,71 flop(dp)/double. Daarom zeggen we dat het geschikt is om de gradi"ent uit te voeren op de grafische als en slechts als het geschikt is om $f(\T, \mUUU)$ uit te voeren op de grafische kaart.
+
+\subsection{\FF{} berekenen}
+We gingen er vanuit dat \FF{} gegeven was. \FF{} is een neveneffect van het berekenen van $f$. We kunnen elke kernel die $f$ berekent aanpassen om ook \FF{} weg te schrijven. Door deze aanpassing verandert ook de rekenverhouding.
+
+De rekenverhouding voor een onaangepaste kernel is gelijk aan:
+\[
+    \frac{2R (I^2 + I^3) + 2I^3}{3RI + I^3}
+\]
+
+We gaan $I^3$ extra getallen wegschrijven. Hierdoor verandert de rekenverhouding naar:
+\[
+    \frac{2R (I^2 + I^3) + 2I^3}{3RI + 2I^3}
+\]
+Als $I$ groot genoeg is kunnen we de rekenverhouding benaderen met $R + 1$.  Dit is een halvering tegenover de rekenverhouding van $f(\T, \mUUU)$ en dat is ook zichtbaar in figuur \ref{haalFG}. We zeggen dat de aangepaste versie van $f(\T, \mUUU)$ geschikt is om uit te voeren op de grafische kaart als en slechts de onaangepaste versie $f(\T, \mUUU)$ geschikt is om uit te voeren op de grafische kaart met een rang die gelijk is aan de helft van de rang van de aangepaste versie.
+
+\begin{figure}
+\centering
+\includegraphics{haalFG}
+\caption{\label{haalFG}De rekenverhoudingen van de aangepaste versie van $f(\T, \mUUU)$. Het kantelpunt voor de GPU met enkele precisie is getekend met een blauwe lijn. Het kantelpunt voor dubbele precisie is getekend met een witte lijn.}
+\end{figure}
+
+\section{Gradi\"ent-kernel}
+Alle voorgaande kernels gebruiken float's, maar we hebben wel alle berekeningen ook voor doubles gedaan. Daarom gaan we voor de gradi"ent met doubles werken. We kunnen alle float-kernels omvormen naar doubles door het sleutelwoord ``float'' te vervangen door ``double''.
+
+Als eerste gaan we double16x16x16 aanpassen naar double16x16x16FG. Het verschil er tussen is dat double16x16x16FG ook \FF{} wegschrijft. Dit is een eenvoudige aanpassing:
+\begin{lstlisting}
+//Old
+..., __global double* sum)
+{
+	...
+	temp = c[j] - T[idxT];
+	sum4 += temp*temp;
+
+//New
+..., __global double* sum, __global double4* F)
+{
+	...
+	temp = c[j] - T[idxT];
+	F[idxT] = temp;
+	sum4 += temp*temp;
+\end{lstlisting}
+
+De volledige broncode is beschikbaar in appendix \refCode{double16x16x16FG}.

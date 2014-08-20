@@ -103,6 +103,6 @@ We slaan de gradi\"ent op in de gradi\"entmatrices \GGG{}. \GGG{} heeft dezelfde
 					&=\sum_{j'}^{I_2}\sum_{k'}^{I_3} f_{ij'k'} \frac{\partial}{\partial u^{(1)}_{ir}} \sum_{r'=1}^{R}  u^{(1)}_{ir'} u^{(2)}_{j'r'} u^{(3)}_{k'r'}&
 					&=\sum_{\substack{\iii{} \in \I\\ i'_n = i}} f_{\iii{}} \frac{\partial}{\partial u^{(n)}_{ir}} \sum_{r'=1}^{R} \prod_{n'=1}^{N} u^{(n')}_{i'_{n'}r'}\\
 %					
-	g^{(1)}_{ir}	&=\sum_{j'}^{I_2}\sum_{k'}^{I_3} f_{ij'k'} u^{(2)}_{j'r'} u^{(3)}_{k'r'}&
+	g^{(1)}_{ir}	&=\sum_{j'}^{I_2}\sum_{k'}^{I_3} f_{ij'k'} u^{(2)}_{j'r} u^{(3)}_{k'r}&
 	g^{(n)}_{ir}	&=\sum_{\substack{\iii{} \in \I\\ i'_n = i}} f_{\iii{}} \prod_{\substack{n'=1\\n'\neq n}}^{N} u^{(n')}_{i'_{n'}r}
 \end{align*}
