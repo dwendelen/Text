@@ -1,3 +1,27 @@
 \chapter{Inleiding}
 \label{inleiding}
-<edit>
+Men kan een tensor voorstellen als een $N$-dimensionale rij. Een tensor met twee dimensies noemen we een tweede-orde tensor. Een tweede-orde tensor is niets minder dan een matrix. We kunnen ook tensoren ontbinden.
+
+We kunnen deze tensor ook op de volgende manier ontbinden:
+
+\[
+    t_{\ii{}} \approx c_{\ii{}} = \sum_{r=1}^{R} \prod_{n=1}^{N} u^{(n)}_{i_{n}r}
+\]
+\begin{center}
+met $\ii{} \in \I$, $R \in \N_0$, $\mUU{n} \in \R^{I_n \times R}$ \\ en $ \I = \{\ii{} \in \N_0^N | \forall n \in [1, N]: i_n \in [1, I_n]\}$
+\end{center}
+
+We noemen deze ontbinding de Canonieke Polyadische Decompositie (CPD). De Canonieke Polyadische Decompositie 
+
+Er bestaan softwarepakketten, waaronder Tensorlab \cite{tensorlab}, die enkele algoritmes implementeren om de CPD te berekenen. De schrijver heeft echter nog geen bewijs gevondezen die er op wijzen dat er al veel onderzoek gedaan is naar het versnellen van deze algoritmes met behulp van OpenCL/CUDA.
+
+\section{Doelstellingen}
+
+Het doel van deze masterproef is om deze algoritmes te ondersteunen met de rekenkracht een grafische kaart. We maken hiervoor gebruik van OpenCL. We gaan op zoek naar rekenintensieve delen uit het algoritme en we gaan die parallelliseren. Maar niet alle algoritmes zijn hiervoor geschikt. Sommige algoritmes zijn gelimiteerd door de bandbreedte. Voor dit soort algoritmes heeft het weinig zin om het uit te voeren op de grafische kaart. Er zijn ook andere algoritmes die men niet kan parallelliseren. Een voorbeeld hiervan is het genereren van recursieve reeksen. Het eerste wat we dus gaan onderzoeken is of het algoritme wel gebruik kan maken van de volledige rekenkracht van de grafische kaart.
+
+Als een deel van het algoritme geschikt is om te parallelliseren, gaan we een zo optimaal mogelijke kernel ontwikkelen. We mikken op een implementatie die minstens \'e\'en Gflop/s kan halen. We berekenen de rekenkracht door het aantal flop's die een optimale implementatie nodig heeft te delen door de tijd die we nodig hebben om dit uit te voeren op de grafische kaart. We gaan ook onderzoeken onder welke omstandigheden de grafische kaart effici\"ent werkt.
+
+De stukken die we parallelliseren zijn op hun eigen niet ze veel waard. Daarom is het ons doel om ze te integreren in \'e\'en van de vele algoritmes die er al bestaan.
+
+\section{Overzicht}
+We beginnen met 

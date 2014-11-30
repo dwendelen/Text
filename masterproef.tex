@@ -8,12 +8,9 @@
   assistant={Dr. ir. L. Sorber}}
 % De volgende \setup mag verwijderd worden als geen fiche gewenst is.
 \setup{filingcard,
-  translatedtitle={The best master thesis ever},
-  udc=621.3,
-  shortabstract={Hier komt een heel bondig abstract van hooguit 500
-    woorden. \LaTeX\ commando's mogen hier gebruikt worden. Blanco lijnen
-    (of het commando \texttt{\string\pa r}) zijn wel niet toegelaten!
-    \endgraf \lipsum[2]}}
+  translatedtitle={Parallelisation of calculations with matrices using OpenCL},
+  udc=681.3,
+  shortabstract={We kunnen een tensor voorstellen als een meerdimensionale rij. Er zijn algoritmes die de tensor ontbinden in een Canonieke Polyadische Decompositie (CPD). Deze ontbinding kan ook een benadering zijn. In deze masterproef gaan we kernels ontwikkelen om gradi\"ent gebaseerde optimalisatie-algoritmes te ondersteunen. Dit is een groep van algoritmes die op zoek gaat naar de best benaderende CPD voor een gegeven tensor. Na de inleiding beschrijven we de wiskundige concepten die we nodig hebben om de kernels te ontwikkelen. Vervolgens bespreken het programmeermodel van OpenCL en de architectuur van de AMD Radeon HD 6970. Al onze kernels zijn geoptimaliseerd voor deze grafische kaart. Nadat we weten hoe OpenCL en de grafische kaart in elkaar zitten gaan we een paar berekeningen doen. Met deze berekeningen onderzoeken we de theoretisch grensen van de kernels die we gaan ontwikkelen. Nadat de kernels een groen licht gekregen hebben bespreken we stapsgewijs hoe de kernels in elkaar zitten en waarom die zo in elkaar zitten. We zullen bij elke stap ook een paar metingen doen zodat de effecten van de optimalisaties zichtbaar zijn. Nadat de kernels ontwikkeld zijn gaan we metingen doen en die bespreken. Tot slot gaan we het werk evalueren en uitbreidingsvoorstellen doen.}}
 % Verwijder de "%" op de volgende lijn als je de kaft wil afdrukken
 %\setup{coverpageonly}
 % Verwijder de "%" op de volgende lijn als je enkel de eerste pagina's wil
@@ -28,48 +25,47 @@
 % Tenslotte wordt hyperref gebruikt voor pdf bestanden.
 % Dit mag verwijderd worden voor de af te drukken versie.
 \usepackage[pdfusetitle,colorlinks,plainpages=false]{hyperref}
-
+%\usepackage[dutch]{babel}
 \usepackage{amsfonts, amsmath}
 \usepackage{todonotes}
 \usepackage{listings}
 %\usepackage{natbib}
 \usepackage{graphicx}
+\usepackage{pdfpages}
+\usepackage{pdflscape}
 
 \lstset{language=C, basicstyle=\footnotesize\ttfamily, keepspaces=true, breaklines=true, tabsize=4,captionpos=t}
 
 \setlength{\parindent}{0pt}
 \setlength{\parskip}{1.5ex plus 0.5ex minus 0.5ex}
 
-%%%%%%%
-% Om wat tekst te genereren wordt hier het lipsum pakket gebruikt.
-% Bij een echte masterproef heb je dit natuurlijk nooit nodig!
-\IfFileExists{lipsum.sty}%
- {\usepackage{lipsum}\setlipsumdefault{11-13}}%
- {\newcommand{\lipsum}[1][11-13]{\par Hier komt wat tekst: lipsum ##1.\par}}
-%%%%%%%
 
 %\includeonly{hfdst-n}
 \begin{document}
 
 \begin{preface}
-	Ik wil graag een paar mensen bedanken en ik ga beginnen met mijn promotor Marc Van Barel en mijn begeleider Laurent Sorber. Zonder hun zou deze masterproef er nooit zijn geweest. Ik dank hun voor hun advies en omdat ik altijd bij hun terecht kon met al mijn vragen. Ik wil ook de onderzoeksgroep Numerical Approximation and Linear Algebra Group (NALAG) bedanken voor het ter beschikking stellen van Falcon\footnote{Falcon is een rekenplatform met twee krachtige grafische kaarten en twee krachtige CPU's.}.
+	Ik wil graag een paar mensen bedanken en ik ga beginnen met mijn promotor Marc Van Barel en mijn begeleider Laurent Sorber. Zonder hun zou deze masterproef er nooit geweest zijn. Ik dank hun voor hun advies en omdat ik altijd bij hun terecht kon met al mijn vragen. Ik wil ook de onderzoeksgroep Numerical Approximation and Linear Algebra Group (NALAG) bedanken voor het ter beschikking stellen van Falcon\footnote{Falcon is een rekenplatform met twee krachtige grafische kaarten en twee krachtige CPU's.}.
 	
 	Naast mijn promotor en begeleider wil ik ook mijn assessoren Philip Dutr\'e en Lieven De Lathauwer bedanken voor de tijd die ze in mijn masterproef gestoken hebben. Ik wil ook een voormalige assessor, Ares Lagae, bedanken voor de kritische feedback tijdens de tussentijdse presentatie.
 
-	Ook dank aan al mijn nalezers voor het nalezen van deze tekst.
-	Omdat studeren niet gratis is, wil ik graag mijn ouders en de Vlaamse belastingsbetalers bedanken voor de financieele ondersteuning van mijn studies.
 	Het studentenleven bestaat uit meer dan alleen studeren. Daarom dank ik de Vlaamse Technische Kring voor het aanbieden van de nodige ontspanning.
+	
+	Omdat studeren niet gratis is, wil ik graag mijn ouders bedanken voor de financieele ondersteuning van mijn studies.
 	Tot slot wil ik ook de rest van mijn familie bedanken voor hun steun.
 \end{preface}
 
 \tableofcontents*
 
 \begin{abstract}
-  In dit \texttt{abstract} environment wordt een al dan niet uitgebreide
-  samenvatting van het werk gegeven. De bedoeling is wel dat dit tot
-  1~bladzijde beperkt blijft.
+	We kunnen een tensor voorstellen als een meerdimensionale rij. Er zijn algoritmes die de tensor ontbinden in een Canonieke Polyadische Decompositie (CPD). Deze ontbinding kan ook een benadering zijn. In deze masterproef gaan we kernels ontwikkelen om gradi\"ent gebaseerde optimalisatie-algoritmes te ondersteunen. Dit is een groep van algoritmes die op zoek gaat naar de best benaderende CPD voor een gegeven tensor. 
+  
+	Na de inleiding beschrijven we de wiskundige concepten die we nodig hebben om de kernels te ontwikkelen. Vervolgens bespreken het programmeermodel van OpenCL en de architectuur van de AMD Radeon HD 6970. Al onze kernels zijn geoptimaliseerd voor deze grafische kaart.
+  
+	Nadat we weten hoe OpenCL en de grafische kaart in elkaar zitten gaan we een paar berekeningen doen. Met deze berekeningen onderzoeken we de theoretisch grensen van de kernels die we gaan ontwikkelen. Nadat de kernels een groen licht gekregen hebben bespreken we stapsgewijs hoe de kernels in elkaar zitten en waarom die zo in elkaar zitten. We zullen bij elke stap ook een paar metingen doen zodat de effecten van de optimalisaties zichtbaar zijn.
+  
+	Eenmaal de kernels ontwikkeld zijn gaan we metingen doen en die bespreken. Tot slot gaan we het werk evalueren en uitbreidingsvoorstellen doen.
 
-  \lipsum[1]
+	
 \end{abstract}
 
 % Een lijst van figuren en tabellen is optioneel
@@ -87,7 +83,7 @@
 		b				& bit\\
 		B				& Byte\\
     	CPD				& Canonieke Polyadische Decompositie\\
-    	CPU				& De gewone processor. (Central processing unit)\\
+    	CPU				& De gewone processor (Central processing unit)\\
     	CU				& Compute-unit\\
     	double			& Drijvendekommagetal met dubbele precisie\\
     	double2			& Tupel van twee drijvendekommagetallen met dubbele precisie\\
@@ -99,8 +95,9 @@
     	flop(sp)		& Drijvendekomma-operatie met enkele precisie\\
     	flop(dp)		& Drijvendekomma-operatie met dubbele precisie\\
     	Gi				& $1024^3$\\
-    	GPU				& De grafische kaart. (Graphics processing unit)\\
+    	GPU				& De grafische kaart (Graphics processing unit)\\
     	Ki				& $1024$\\
+    	MAD				& Multiply-add ($a = b * c + d$)\\
     	Mi				& $1024^2$\\
     	PE				& Processing-element\\
     	SC				& Stream-core\\
@@ -118,9 +115,9 @@
 		$\tens{F}$		& De residu-tensor.\\
 		$\mGGG$			& De gradi\"entmatrices.\\
 		$I$				& $\forall n = 1, \ldots, N: I_n = I$.\\
-		$I_n$			& Het aantal elementen in mode $n$.\\
+		$I_n$			& Het aantal elementen in mode $n$ van \TT.\\
 		$N$				& De orde van een tensor.\\
-		$R$				& De rank van de CPD.\\
+		$R$				& De rang van de CPD.\\
 		$t_{ijk}$		& Het ($i$, $j$, $k$)-de element van een tensor $\tens{T}$.\\
 		$t_{\ii}$		& Het $\ii$-de element van een tensor $\tens{T}$. Merk op dat $\ii$ een tupel is.\\
 		$\tens{T}$		& De tensor die we benaderen.\\
@@ -139,6 +136,7 @@
 \include{algo}
 \include{opencl}
 \include{kernel}
+\include{resultaten}
 % ... en zo verder tot
 \include{besluit}
 
@@ -147,7 +145,7 @@
 \appendix
 \include{app-A}
 % ... en zo verder tot
-%\include{app-n}
+\include{app-n}
 
 \backmatter
 % Na de bijlagen plaatst men nog de bibliografie.

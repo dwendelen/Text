@@ -3,10 +3,10 @@
 In dit hoofdstuk gaan we de kernels bespreken die we ontwikkeld hebben. We beperken ons tot derde-orde tensoren. In een later hoofdstuk doen we voorstellen voor hogere-orde tensoren. We gaan ons ook focussen op kernels voor de grafische kaart.
 
 \section{Geschiktheid bepalen}
-Voor we een kernel ontwikkelen gaan we eerst onderzoeken of het algoritme (deels) te parallelliseren. Als we het (deels) kunnen parallelliseren gaan we kijken of de snelheid van het algoritme beperkt wordt door het geheugen of de rekenkracht.
+Voor we een kernel ontwikkelen gaan we eerst kijken of de snelheid van het algoritme beperkt wordt door het geheugen of de rekenkracht. Hiervoor voeren we twee nieuwe begrippen in: de rekenverhouding en het kantelpunt.
 
 \subsection{Rekenverhouding en kantelpunt}
-De verhouding tussen het aantal rekenoperaties en het aantal getallen dat geschreven en gelezen worden noemen we de rekenverhouding. De rekenverhouding waarbij het geheugen en de rekeneenheden even snel werken noemen we het kantelpunt. In enkele precisie kunnen we 2,703 Tflop(sp)/s verwerken en het geheugen heeft een bandbreedte van 176 GB/s. Met deze gegevens kunnen we het kantelpunt berekenen voor berekeningen met enkele precisie:
+De verhouding tussen het aantal rekenoperaties en het aantal getallen dat we lezen en schrijven noemen we de rekenverhouding. De rekenverhouding waarbij het geheugen en de rekeneenheden even snel werken noemen we het kantelpunt. In enkele precisie kunnen we 2,703 Tflop(sp)/s verwerken en het geheugen heeft een bandbreedte van 176 GB/s. Met deze gegevens kunnen we het kantelpunt berekenen voor berekeningen met enkele precisie:
 \[
 	\frac{2703 \text{Gflop(sp)/s} \times 4 \text{B/float}}
          {176 \text{GB/s}}										= 61,43 \text{flop(sp)/float}
@@ -31,12 +31,12 @@ Wanneer de rekenverhouding hoger is dan het kantelpunt, wordt de uitvoeringstijd
 \begin{figure}
 \centering
 \includegraphics{kantelpunt}
-\caption{\label{kantelpunt}De rekenkracht en bandbreedte GPU voor verschillende rekenverhoudingen. Dit zowel voor dubbele als enkele precisie. Merk op dat de curves knikken bij de kantelpunten 61,43 flop(sp)/float en 30,71 flop(dp)/double.}
+\caption{\label{kantelpunt}De rekenkracht en de bandbreedte van de GPU voor verschillende rekenverhoudingen. Dit zowel voor dubbele als enkele precisie. Merk op dat de curves knikken bij de kantelpunten 61,43 flop(sp)/float en 30,71 flop(dp)/double.}
 \end{figure}
 
-Stel dat de rekenverhouding slechts de helft is van het kantelpunt en dat we in dubbele precisie werken. Dit betekent dat de rekeneenheden maar op de helft van de snelheid kan werken en dat het geheugen aan volle snelheid kan werken. Omdat we maar de helft van de rekenkracht kunnen gebruiken, kunnen we slechts 338 Gflop(dp)/s halen.
+Stel dat de rekenverhouding slechts de helft is van het kantelpunt en dat we in dubbele precisie werken. Dit betekent dat de rekeneenheden maar aan de helft van hun snelheid kunnen werken en dat het geheugen aan volle snelheid kan werken. Omdat we maar de helft van de rekenkracht kunnen gebruiken, kunnen we slechts 338 Gflop(dp)/s verwerken.
 
-Wanneer de rekenverhouding gelijk is 14,4 flop(dp)/double (het kantelpunt van de CPU) aan halen de CPU's 115,2 Gflop(dp)/s en haalt de GPU 316,5 Gflop(dp)/s. (675,75 Gflop(dp)/s $\times$ (14,4 flop(dp)/double $\div$ 30,71 flop(dp)/double)) Wanneer we lager gaan blijft de verhouding tussen de rekenkracht van de CPU's en de rekenkracht van de GPU constant.
+Wanneer de rekenverhouding gelijk is 14,4 flop(dp)/double (het kantelpunt van de CPU) aan halen de CPU's 115,2 Gflop(dp)/s en haalt de GPU 316,5 Gflop(dp)/s. (675,75 Gflop(dp)/s $\times$ (14,4 flop(dp)/double $\div$ 30,71 flop(dp)/double)) Wanneer de rekenverhouding nog lager is, gaan blijft de verhouding tussen de rekenkracht van de CPU's en de rekenkracht van de GPU constant.
 
 Men zou kunnen denken dat de GPU altijd superieur is aan de CPU's. Maar dan vergeet men dat er een grote traagheid is op het geheugen van de GPU en dat er genoeg wavefronten moeten zijn om de piek-performantie van de GPU te kunnen bereiken. Dit zal niet altijd het geval zijn. Een eenvoudig voorbeeld hiervan is het berekenen van een recursieve reeks.
 
@@ -63,7 +63,7 @@ Sommige drijvendekomma-operaties duren op de GPU langer om uit te voeren dan and
 
 We hebben de tabel als volgt opgesteld. Eerst hebben we de eerste kolom ingevuld. Deze informatie komt uit de handleiding van AMD\cite[p.~6-41]{amd}. Daarna hebben we de flop's voor een MAD gelijksteld aan twee. We doen dit omdat we bij het berekenen van de rekenkracht, het aantal flop's voor een MAD ook gelijkstellen aan twee. Daarna vullen we de rest van tweede kolom aan met de MAD als referentie.
 
-Bij het toewijzen van flop's moeten we echter opletten. Als we de MAD negeren zullen we onterecht extra flop's aanrekenen. Stel dat we het aantal flops willen berekenen van volgende bewerking: $a = (b*c*d) + e$. Als we de MAD negeren komen we uit op zes flop. (zowel voor dubbele als voor enkele precisie) We zullen rekening houden met de MAD door de som van de MAD niet mee te later rekenen. In het voorbeeld rekenen we dus als volgt: \\MUL + MUL + ADD $\rightarrow$ 2 + 2 + 0 (MAD) = 4 flop. We zullen ook steeds aangeven wanneer we de som niet meerekenen vanwege de MAD.
+Bij het toewijzen van flop's moeten we echter opletten. Als we de MAD negeren zullen we onterecht extra flop's aanrekenen. Stel dat we het aantal flops willen berekenen van volgende bewerking: $a = (b*c*d) + e$. Als we de MAD negeren komen we uit op zes flop. (zowel voor dubbele als voor enkele precisie) We zullen rekening houden met de MAD door de som van de MAD gelijk te stellen aan 0 flop's. In het voorgaande voorbeeld rekenen we dus als volgt: \\MUL + MUL + ADD $\rightarrow$ 2 + 2 + 0 (MAD) = 4 flop. We zullen ook steeds aangeven wanneer we de som niet meerekenen vanwege de MAD.
 
 %\todo{enkel 3D}
 %\todo{nodige verhouding}
@@ -79,7 +79,7 @@ We herhalen nog eens de functie die we willen parallelliseren:
 	f &= \sum_{i = 1}^I \sum_{j = 1}^I \sum_{k = 1}^I \left( \left( \sum_{r=1}^{R} u^{(1)}_{i r} u^{(2)}_{j r} u^{(3)}_{k r} \right) - t_{ijk}\right)^2 \\
 \end{align*}
 
-We moeten eerst nagaan of $f(\T, \mUUU)$ geschikt is om te parallelliseren. Hiervoor moeten we eerst de rekenverhouding berekenen:\\
+We moeten eerst nagaan of $f(\T, \mUUU)$ geschikt is om te parallelliseren. Hiervoor moeten we de rekenverhouding berekenen:\\
 \begin{tabular}{|r l|c| c|c|}
 \hline
 					&							& flop(sp)			& flop(dp) 			& \# geh. aanvragen	\\
@@ -117,10 +117,10 @@ De totale rekenverhouding is gelijk aan:
 \begin{figure}
 \centering
 \includegraphics{haalF}
-\caption{\label{haalF}De rekenverhoudingen van $f(\T, \mUUU)$. Het kantelpunt voor de GPU met enkele precisie is getekend met een rode lijn. Het kantelpunt voor dubbele precisie is getekend met een witte lijn.}
+\caption{\label{haalF}De rekenverhoudingen van $f(\T, \mUUU)$. Het kantelpunt voor berekeningen met enkele precisie is getekend met een rode lijn. Het kantelpunt voor berekeningen met dubbele precisie is getekend met een witte lijn.}
 \end{figure}
 
-Wanneer we de rekenverhoudingen plotten (figuur \ref{haalF}), zien we dat kantelpunten convergeren naar $R = 30$ en $R = 14$ wanneer $I$ groter wordt. We noemen dit de convergentierangen. We kunnen dit ook eenvoudig afleiden uit de formule:
+Wanneer we de rekenverhoudingen plotten (figuur \ref{haalF}), zien we dat de kantelpunten convergeren naar $R = 30$ en $R = 14$ wanneer $I$ groter wordt. We noemen dit de convergentierangen. We kunnen deze waardes van R ook eenvoudig afleiden uit de formule:
 \begin{align*}
     61,43 =& \lim_{I \to \infty} \frac{2R (I^2 + I^3) + 2I^3}{3RI + I^3} &
     30,71 =& \lim_{I \to \infty} \frac{2R (I^2 + I^3) + 2I^3}{3RI + I^3}\\
@@ -143,14 +143,14 @@ Deze rekenverhoudingen liggen juist boven de kantelpunten. Merk ook op dat de ra
 
 %\section{Indelen NDRange}
 \section{Float4x4x4 kernel}
-De basiskernel is een combinatie van vele optimalisaties en beslissingen. Om de lezer niet te overweldigen zullen we de basiskernel stap voor stap opbouwen. Bij elke stap zullen we ook meten hoeveel winst we met elke stap maken. We zullen de winst meten door de tijd te meten die de kernel nodig heeft om uitgevoerd te worden. We meten in de volgende vier punten:
+De basiskernel is een combinatie van vele optimalisaties en beslissingen. Om de lezer niet te overweldigen zullen we de basiskernel stap voor stap opbouwen. Bij elke stap zullen we ook meten hoeveel winst we met elke stap maken. We zullen de winst meten door de tijd te meten die de kernel nodig heeft om uit te voeren. We meten in de volgende vier punten:
 \begin{itemize}
     \item I = 16, R = 16
     \item I = 16, R = 6000
     \item I = 320, R = 16
     \item I = 320, R = 6000
 \end{itemize}
-Door punten te kiezen met een hoge en een lage I en met een hoge en een lage R, kunnen we meer inzicht krijgen in de impact van de optimalisatie bij verschillende waardes van R in I.
+Door punten de punten zo te kiezen, kunnen we meer inzicht krijgen in de impact van de optimalisatie bij verschillende waardes van R in I.
 
 
 \subsection{Een eerste kernel}
@@ -158,25 +158,25 @@ Zie \ref{codeFloat} voor de volledige broncode van de eerste versie van de kerne
 We gaan nu elk onderdeel van deze kernel toelichten.
 
 \subsubsection{Voor de R-lus}
-De eerste lijnen zijn de definitie van de kernel en bestaat uit de volgende elementen:
+De eerste lijnen vorm de declaratie van de kernel. De declaratie bestaat uit de volgende elementen:
 \begin{tabular}{l p{9cm}}
     \code{\_\_kernel void Kernel} & De kernel noemen we ``Kernel''\\
-	\code{\_\_global const float* T} & Het stukje globaal geheugen waarin we de tensor \TT opslaan.\\
+	\code{\_\_global const float* T} & Het stukje globaal geheugen waarin we de tensor \TT{} opslaan.\\
 	\code{\_\_global const float* U1} & De eerste factormatrix \UU{1}.\\
 	\code{const int R} & De rang van de ontbinding.\\
-	\code{\_\_global float* sum} & Het stukje globaal geheugen waar elke work-group zijn stuk van de som naar wegschrijft.\\
+	\code{\_\_global float* sum} & Het stukje globaal geheugen waar elke work-group zijn stuk van de som naar wegschrijft. (Zie \ref{calcSum})\\
 	\code{const int I1} & Het aantal work-items in mode \'e\'en.\\
-	\code{\_\_local float* l} & Het stukje van het lokaal geheugen waar elk work-item zijn stuk van de som naar wegschrijft.\\
+	\code{\_\_local float* l} & Het stukje van het lokaal geheugen waar elk work-item zijn stuk van de som naar wegschrijft. (Zie \ref{calcSum})\\
 \end{tabular}
 
 In de volgende twee lijnen declarenen we een tijdelijke variabele (\code{float temp;}) en een stukje registergeheugen waar we \'e\'en element van \CC{} in opslaan. (\code{float c = 0;}) We gebruiken \code{c} ook om het element van \CC{} in op te bouwen.
 
 \subsubsection{Itereren over R}
-Stel dat we $r$\todo{r/R-mess opkuisen} indelen volgens een dimensie van de NDRange. Dan moeten we twee kernels schrijven. Een eerste die $u^{(1)}_{i r} u^{(2)}_{j r} u^{(3)}_{k r}$ uitrekent en een tweede die rest van de berekeningen doet. Door deze opsplitsing ontstaan er $RI^3$ extra schrijfoperaties door de eerste kernel en nog eens $RI^3$ extra leesoperaties door de tweede kernel. Hierdoor is er ongeveer maar \'e\'en rekenoperatie per geheugenoperatie en dit is onaanvaardbaar. Daarnaast zal er ook veel extra geheugen nodig zijn. We besluiten dat we over R moeten itereren in de kernel. De lus waarin we itereren over R noemen we de R-lus. \todo{opmaak R / R hernoemen}
+Stel dat we $r$ indelen volgens een dimensie van de NDRange. Dan moeten we twee kernels schrijven. Een eerste die $u^{(1)}_{i r} u^{(2)}_{j r} u^{(3)}_{k r}$ uitrekent en een tweede die rest van de berekeningen doet. Door deze opsplitsing ontstaan er $RI^3$ extra schrijfoperaties door de eerste kernel en nog eens $RI^3$ extra leesoperaties door de tweede kernel. Hierdoor is er ongeveer maar \'e\'en rekenoperatie per geheugenoperatie en dit is onaanvaardbaar. Daarnaast zal er ook veel extra geheugen nodig zijn. We besluiten dat we over R moeten itereren in de kernel. De lus waarin we itereren over $r$ noemen we de R-lus.
 
-In de R-lus gaan $c_{ijk} = \sum_{r=1}^{R} u^{(1)}_{i r} u^{(2)}_{j r} u^{(3)}_{k r}$ berekenen. We doen dit door elke iteratie vooruit te springen in de factormatrices. De factormatrices zijn rij-eerst gelineariseerd en elke kolom is een factorvector\todo{define} voor een andere waarde van r\todo{opmaak}. Daarom moeten we $I_n$ geheugenplaatsen vooruitspringen wanneer we r \todo{opmaak} met \'e\'en verhogen.
+In de R-lus gaan $c_{ijk} = \sum_{r=1}^{R} u^{(1)}_{i r} u^{(2)}_{j r} u^{(3)}_{k r}$ berekenen. We doen dit door elke iteratie vooruit te springen in de factormatrices. De factormatrices zijn rij-eerst gelineariseerd waardoor we $I_n$ geheugenplaatsen vooruit moeten springen wanneer we $r$ met \'e\'en verhogen.
 
-Elke work-item komt overeen met een ander element uit \CC. Verschillende work-items beginnen dus op verschillende plaatsen in de factormatrices. In de kernel berekenen we die beginplaatsen als volgt:
+Elke work-item komt overeen met een ander element uit \CC{}. Verschillende work-items beginnen dus op verschillende plaatsen in de factormatrices. In de kernel berekenen we die beginplaatsen als volgt:
 
 \begin{lstlisting}
 int idxT = get_global_id(0);
@@ -202,7 +202,8 @@ for(int r = 0; r < R; r++)
 \end{lstlisting}
 
 \subsubsection{Na de R-lus}
-De laatste stap is om $\sum_{i,j,k = 1}^{I_1, I_2, I_3} \left(c_{ijk} - t_{ijk}\right)^2$ uit te rekenen. Eerst trekken we $t_{ijk}$ af van $c_{ijk}$ en dan gaan we sommeren. De sommatie gebeurt in enkele stappen. In de eerste stap zal elke work-item $c_{ijk} - t_{ijk}$ opslaan in het lokaal geheugen. Dit leidt tot de volgende code:
+\label{calcSum}
+De laatste stap is om $\sum_{i,j,k = 1}^{I_1, I_2, I_3} \left(c_{ijk} - t_{ijk}\right)^2$ uit te rekenen. Eerst trekken we $t_{ijk}$ af van $c_{ijk}$ en dan gaan we sommeren. Deze sommatie gebeurt in enkele stappen. In de eerste stap zal elke work-item $c_{ijk} - t_{ijk}$ opslaan in het lokaal geheugen. Dit leidt tot de volgende code:
 \begin{lstlisting}
 float sum1;
 
@@ -212,7 +213,7 @@ sum1 = temp * temp;
 l[get_local_id(0)] = sum1;
 \end{lstlisting}
 
-Daarna zal het eerst work-item binnen de work-group al deze waarden optellen. Het optellen van deze waardes kan pas beginnen nadat alle andere work-items $c_{ijk} - t_{ijk}$ weggeschreven hebben. Deze som wordt dan weggeschreven in \code{sum}. Wanneer alle work-groups verwerkt zijn, zal de ondersteunende software \todo{def}, \code{sum} kopieren naar het RAM geheugen en zal de CPU alles optellen. Het laatste stukje kernel ziet er als volgt uit:
+Daarna zal het eerst work-item binnen de work-group al deze waardes optellen. Het optellen van deze waardes kan pas beginnen nadat alle andere work-items $c_{ijk} - t_{ijk}$ weggeschreven hebben. Deze som wordt dan weggeschreven in \code{sum}. Wanneer alle work-groups verwerkt zijn, zal de ondersteunende software, \code{sum} kopi\"eren naar het RAM geheugen en zal de CPU alles optellen. Het laatste stukje kernel ziet er als volgt uit:
 \begin{lstlisting}
 barrier(CLK_LOCAL_MEM_FENCE);
 if(get_local_id(0) == 0)
@@ -229,18 +230,33 @@ if(get_local_id(0) == 0)
 
 We doen de finale som niet op de grafische kaart omdat er veel te veel traagheid zit op het globaal geheugen. Wanneer we een getal inladen zal het 400 cycli duren voor we het volgende getal kunnen inladen. Om deze traagheid te maskeren hebben we te veel work-items nodig. Daarnaast is er maar \'e\'en rekenoperatie per geheugenaanvraag waardoor de rekeneenheden lang stil zullen liggen. 
 
-De tijd die nodig is om de getallen in \code{sum} over te zetten en dan te sommeren is niet noodzakelijk verloren. Het is mogelijk om andere berekeningen te doen op de GPU terwijl we \code{sum} overzetten en sommeren. De parameters voor deze berekening kunnen overgezet worden terwijl we $f$ \todo{opmaak} berekenen op de GPU.
+De tijd die nodig is om de getallen in \code{sum} over te zetten en dan te sommeren op de CPU is niet noodzakelijk verloren. Het is mogelijk om andere berekeningen te doen op de GPU terwijl we \code{sum} overzetten en sommeren. We kunnen de parameters voor deze berekening overzetten terwijl we $f$ berekenen op de GPU.
 
 \subsection{64 Work-items per work-group}
-In de eerste kernel kunnen we nog het aantal work-items per work-group vrij kiezen. In de aanloop voor een latere versie gaan we het aantal work-items per work-group vast zetten op 64. We kiezen voor 64 omdat een wavefront bestaat uit exact 64 work-items. Dit betekent dat alle rekeneenheden benut worden. Omdat alle work-items deel uit maken van dezelfde wavefront zullen alle work-items synchroon lopen.
+In de eerste kernel kunnen we nog het aantal work-items per work-group vrij kiezen. In de aanloop voor een latere versie, gaan we het aantal work-items per work-group vastzetten op 64. We kiezen voor 64 omdat een wavefront bestaat uit exact 64 work-items. Dit betekent dat alle rekeneenheden benut worden. Omdat alle work-items deel uitmaken van dezelfde wavefront, zullen alle work-items synchroon lopen.
 
-Een nadeel is echter dat het aantal elementen in \TT{} een geheel veelvoud moet zijn van 64. \todo{enkel geheugen impact}.
+Dit is ook duidelijk zichtbaar wanneer we de eerste kernel eerst uitvoeren met 32 work-items en daarna met 64 work-items. (Zie tabel \ref{measF3264}.
 
-In de kernel voegen we helemaal bovenaan de volgende lijn toe:\\ \code{\_\_attribute\_\_((reqd\_work\_group\_size(64, 1, 1)))}. Deze lijn verplicht ons om 64 work-items per work-group te gebruiken. Maar het laat de compiler ook toe om optimalisaties te doen. E\'en van de optimalisaties heeft te maken met registerallocatie en wordt beschreven in de AMD handleiding\cite[p.~6-27]{ amd}. Een andere optimalisatie heeft te maken met synchronizatiepunten.
+\begin{table}
+	\centering
+    \begin{tabular}{|l| r|r| r |r|}
+		\hline
+						& \multicolumn{4}{c|}{Rekenkracht voor (I, R) in Gflop(sp)/s}\\
+		\hline
+		Kernel          & 16, 16 	& 16, 6000	& 320, 16	&  320, 6000 \\
+		\hline
+		Float (32)      & 0.1746  	& 7.519   	& 12.23 	& 21.09 	\\
+		Float (64)      & 1.4649	& 10.551  	& 15.41  	& 42.11  	\\
+		\hline
+    \end{tabular}
+    \caption{\label{measF3264} Overzicht snelheidswinsten door optimalisaties.}
+\end{table} 
 
-Omdat de work-items binnen een work-item synchroon lopen hebben we geen lokale synchronizatiepunten meer nodig. De compiler zal dit optimaliseren door deze punten te verwijderen. We verwijderen ze echter niet in de code omdat de kernel dan niet meer compatibel is met andere apparaten. Een voorbeeld van zo een ander apparaat is de CPU. De CPU werkt niet met wavefronten en heeft dus de synchronizatiepunten wel nodig.
+In de kernel voegen we helemaal bovenaan de volgende lijn toe:\\ \code{\_\_attribute\_\_((reqd\_work\_group\_size(64, 1, 1)))}. Deze lijn verplicht ons om 64 work-items per work-group te gebruiken. Deze lijn laat de compiler ook toe om optimalisaties te doen. E\'en van de optimalisaties heeft te maken met registerallocatie en wordt beschreven in de AMD handleiding\cite[p.~6-27]{ amd}. Een andere optimalisatie heeft te maken met synchronizatiepunten.
 
-Niet alleen de kernel kan optimalisaties doen. Wij kunnen dat ook. Omdat we weten hoeveel work-items er per work-group zijn, kunnen we bij het compilen de grootte van het lokaal geheugen al vastleggen. Dit vertaalt zich in volgende aanpassingen.
+Omdat de work-items binnen een work-item synchroon lopen hebben we geen lokale synchronizatiepunten meer nodig. De compiler zal dit optimaliseren door deze synchronizatiepunten te verwijderen. We verwijderen ze echter niet in de code omdat de kernel dan niet meer compatibel is met andere apparaten. Een voorbeeld van zo een ander apparaat is de CPU. De CPU werkt niet met wavefronten en heeft dus de synchronizatiepunten wel nodig.
+
+Niet alleen de kernel kan optimalisaties doen. Wij kunnen ook optimalisaties doorvoeren. Omdat we weten hoeveel work-items er per work-group zijn, kunnen we bij het compilen de grootte van het lokaal geheugen al vastleggen. Dit vertaalt zich in volgende aanpassingen.
 
 \begin{lstlisting}
 //Old
@@ -283,7 +299,7 @@ if(get_local_id(0) == 0)
 }
 \end{lstlisting}
 
-Merk op dat er \code{\#pragma unroll} is bijgekomen bij de tweede aanpassing. Dit zorgt er voor dat de lus vertaald wordt naar onderstaand fragment. 
+Merk op dat er \code{\#pragma unroll} is bijgekomen bij de tweede aanpassing. Dit zorgt er voor dat de compiler deze lus vertaalt naar het onderstaandefragment. 
 \begin{lstlisting}
 sum1 += l[1];
 sum1 += l[2];
@@ -292,20 +308,34 @@ sum1 += l[3];
 \end{lstlisting}
 We gebruiken \code{\#pragma unroll} omdat dit minder schrijfwerk en beter aanpasbaar is dan een handmatige vertaling. De \code{\#pragma unroll} (of een handmatige vertaling) is een optimalisatie van de vorige versie van de kernel.
 
-\todo{measure}
+\begin{table}
+	\centering
+    \begin{tabular}{|l| r|r| r |r|}
+		\hline
+						& \multicolumn{4}{c|}{Rekenkracht voor (I, R) in Gflop(sp)/s}\\
+		\hline
+		Kernel          & 16, 16 	& 16, 6000	& 320, 16	&  320, 6000 \\
+		\hline
+		Float (32)      & 0.1746  	& 7.519   	& 12.23 	& 21.09 	\\
+		Float (64)      & 1.4649	& 10.551  	& 15.41  	& 42.11  	\\
+		Float64         & 2.4085 	& 14.794  	& 36.35 	& 42.08 	\\
+		\hline
+    \end{tabular}
+    \caption{\label{measF64} Overzicht snelheidswinsten door optimalisaties met de toevoeging van float64.}
+\end{table}
 
 Zie \ref{codeFloat64} voor de volledig broncode van de kernel.
 
-We gaan deze kernel vergelijken met de versie waarbij men de grootte van het wavefront 
+Laten we deze kernel eens vergelijken met de kernel float met 64 work-items. (Zie tabel \ref{measF64}). Voor hogere waardes var R is de winst niet zo heel groot. We zien wel bijna een verdubbeling van de rekenkracht bij lage waardes van R. Dit komt omdat we de sommerings-lus geoptimaliseerd hebben. Bij lage waardes van R, krijgt die meer gewicht.
 
 \subsection{float4x4x4}
-In de laatste versie van de kernel gebruikten we \'e\'en dimensie van de NDRange. Elke work-item komt overeenkomen met een element uit $\tens{T}$. We spreken over een 1DRange.
+In de laatste versie van de kernel gebruikten we \'e\'en dimensie van de NDRange. Elk work-item komt overeenkomen met een element uit $\tens{T}$. We spreken over een 1DRange.
 
-Een alternatief is dat we alle drie de dimensies van de NDRange gebruiken. Hierbij zullen de drie indices van de work-item overeenkomen met de rijen van de drie factormatrices. We spreken nu over een 3DRange. Merk echter wel op dat \'e\'en work-item nog steeds overeenkomt met \'e\'en element van \TT.
+Een alternatief is dat we alle drie de dimensies van de NDRange gebruiken. Hierbij zullen de drie indices van het work-item overeenkomen met de rijen van de drie factormatrices. We spreken nu over een 3DRange. Merk echter wel op dat \'e\'en work-item nog steeds overeenkomt met \'e\'en element van \TT.
 
-Omdat we nu een 3DRange gebruiken veranderen er een paar zaken. Allereerst verdelen we de 64 work-items over de drie dimensies. De work-group is in elke dimensie vier work-items groot. ($64 = 4^3$) We noemen deze kernel float4x4x4 omdat een work-group 4x4x4 groot is en float's verwerkt.
+Omdat we nu een 3DRange gebruiken veranderen er een paar zaken. Allereerst verdelen we de 64 work-items over de drie dimensies. De work-group is in elke dimensie vier work-items groot. ($64 = 4^3$) We noemen deze kernel float4x4x4 omdat een work-group 4x4x4 groot is en met float's werkt.
 
-De grootte van de NDRange in een dimensie $n$ is gelijk aan $I_n$. We moeten de parameters \code{I1}, \code{I2} en \code{I3} dus niet meer meegeven aan de kernel. De besproken aanpassingen zien er als volgt uit in broncode:
+De grootte van de NDRange in dimensie $n$ is gelijk aan $I_n$. We moeten de parameters \code{I1}, \code{I2} en \code{I3} dus niet meer meegeven aan de kernel. De besproken aanpassingen zien er als volgt uit in broncode:
 \begin{lstlisting}
 //Old
 __attribute__((reqd_work_group_size(64, 1, 1)))
@@ -358,8 +388,8 @@ barrier(CLK_LOCAL_MEM_FENCE);
 if(lIdx == 0)
 {        
 	...
-	int gId = get_group_id(0) + get_num_groups(0) * (get_group_id(1) + get_num_groups(1) * get_group_id(2));
-	sum[gId] = sum1;
+	int gIdx = get_group_id(0) + get_num_groups(0) * (get_group_id(1) + get_num_groups(1) * get_group_id(2));
+	sum[gIdx] = sum1;
 }
 \end{lstlisting}
 
@@ -367,18 +397,34 @@ if(lIdx == 0)
 Zie \ref{codeFloat4x4x4} voor de volledige code.
 
 %\todo{Eeste kernels tonen enzo}
-\todo{waarom 64 items/workitems}
-\todo{work-items verspillen}
+
 %\todo{R-lus definieren}
 %\todo{nuttige rekenoperatie def.}
 
-Uit de resultaten blijkt dat de 3DRange-versie over het algemeen effici\"enter is dan de 1DRange-versie. Laten we eens de leesoperatie binnen de R-lus van een volledige work-group bekijken. We mogen dit doen omdat de aanvragen gecacht worden in de L1-cache. Het aantal leesoperaties buiten de R-lus is even groot voor beide gevallen.
+\begin{table}
+	\centering
+    \begin{tabular}{|l| r|r| r |r|}
+		\hline
+						& \multicolumn{4}{c|}{Rekenkracht voor (I, R) in Gflop(sp)/s}\\
+		\hline
+		Kernel          & 16, 16 	& 16, 6000	& 320, 16	&  320, 6000 \\
+		\hline
+		Float (32)      & 0.1746  	& 7.519   	& 12.23 	& 21.09 	\\
+		Float (64)      & 1.4649	& 10.551  	& 15.41  	& 42.11  	\\
+		Float64         & 2.4085 	& 14.794  	& 36.35 	& 42.08 	\\
+		Float4x4x4      & 2.5327  	& 14.759 	& 40.19 	& 41.97  	\\
+		\hline
+    \end{tabular}
+    \caption{\label{measF4} Overzicht snelheidswinsten door optimalisaties met de toevoeging van float4x4x4.}
+\end{table}
 
-Stel dat voor alle work-items de tweede-mode-index en derde-mode-index gelijk is en enkel de eerste-mode-index verandert. Dan is het aantal leesoperaties binnen de R-lus gelijk aan $64 + 1 + 1 = 66$ over de hele work-group. Wanneer ook de tweede-mode index verandert gaat dit getal nog verder omhoog. 66 is dus het meest optimistisch aantal geheugenaanvragen.
+Uit de resultaten (zie tabel \ref{measF4} blijkt dat de 3DRange-versie voor een lager R een beetje effici\"enter is dan de 1DRange-versie. Dit gaat tegen de verwachtingen in. We verwachten eigenlijk dat float4x4x4 vooral effici\"enter is voor hoge waardes van R.
 
-We kunnen ook hetzelfde doen voor de 3DRange-versie. Het aantal geheugenaanvragen voor een hele work-group binnen de R-lus is gelijk aan $3 \cdot 4 = 12$. Dit is slechts een vijfde van het aantal aanvragen bij de 1D-versie voor dezelfde hoeveelheid rekenwerk. De 1DRange-versie heeft wel het voordeel dat het minder cachegeheugen vereist en minder extra work-items verspilt, maar dit weegt over het algemeen niet op tegen het verschil in aantal geheugenaanvragen.
+Laten we eens de leesoperatie binnen de R-lus van een volledige work-group bekijken. We mogen dit doen omdat de aanvragen gecached worden in de L1-cache. Het aantal leesoperaties buiten de R-lus is even groot bij een 3DRange als bij een 1DRange.
 
-\todo{def. twee delen van het algoritme}
+Stel dat voor alle work-items de tweede-mode-index en derde-mode-index gelijk zijn en dat enkel de eerste-mode-index verschillend is. Dan is het aantal leesoperaties binnen de R-lus gelijk aan $64 + 1 + 1 = 66$ over de hele work-group. Wanneer ook de tweede-mode index verandert gaat dit getal nog verder omhoog. 66 is dus een optimistisch aantal geheugenaanvragen.
+
+We kunnen ook hetzelfde doen voor de 3DRange-versie. Het aantal geheugenaanvragen voor een hele work-group binnen de R-lus is gelijk aan $3 \cdot 4 = 12$. Dit is slechts een vijfde van het aantal aanvragen bij de 1D-versie voor dezelfde hoeveelheid rekenwerk.
 
 Laten we even dieper ingaan op de rekenverhouding voor een work-group voor de 3DRange-versie.
 
@@ -400,11 +446,10 @@ Laten we even dieper ingaan op de rekenverhouding voor een work-group voor de 3D
 
 \label{rekenFl4}
 
-De rekenverhoudingen binnen de R-lus is slechts gelijk aan 21,33 flop(sp)/float en 21,33 flop(dp)/double. Dit kan de rekenverhouding van het stuk buiten de R-lus van 5,88 flop(sp)/float en 3,92 flop(dp)/double niet opkrikken tot boven de kantelpunten van 61,43 flop(sp)/float en 30,71 flop(dp)/double. Er is dus nog veel ruimte voor verbeteringen.
-\todo{invullen}
+De rekenverhoudingen binnen de R-lus is slechts gelijk aan 21,33 flop(sp)/float en 21,33 flop(dp)/double. Dit kan de rekenverhouding van het stuk buiten de R-lus van 5,88 flop(sp)/float en 3,92 flop(dp)/double niet opkrikken tot boven de kantelpunten van 61,43 flop(sp)/float en 30,71 flop(dp)/double. Er is dus nog veel ruimte voor verbetering.
 
 \section{Float8x8x8 en float16x16x16}
-In float4x4x4 komt \'e\'en work-item overeen met een blokje van $1 \times 1 \times 1$ elementen van $\tens{T}$ en elke work-group met een blokje van $4 \times 4 \times 4$ elementen van $\tens{T}$. We willen de rekenverhouding opdrijven door een work-group niet met een blokje van $4 \times 4 \times 4$ te laten overeenkomen, maar met een blok van $8 \times 8 \times 8$ of zelfs $16 \times 16 \times 16$ elementen. Een work-item zal dan een blok van $2 \times 2 \times 2$ of $4 \times 4 \times 4$ elementen verwerken. We spreken over de 8x8x8 -of over de 16x16x16-kernel. De oude versie noemen we de 4x4x4-kernel.
+In float4x4x4 komt \'e\'en work-item overeen met een blokje van $1 \times 1 \times 1$ elementen van $\tens{T}$ en elke work-group met een blokje van $4 \times 4 \times 4$ elementen van $\tens{T}$. We willen de rekenverhouding opdrijven door een work-group niet met een blokje van $4 \times 4 \times 4$ te laten overeenkomen, maar met een blok van $8 \times 8 \times 8$ of zelfs $16 \times 16 \times 16$ elementen. Een work-item zal dan een blok van $2 \times 2 \times 2$ of $4 \times 4 \times 4$ elementen verwerken. We spreken over de 8x8x8 -of over de 16x16x16-kernel. De oude versie noemen we een 4x4x4-kernel.
 
 
 
@@ -426,7 +471,7 @@ De impact op de code:
 ...,  __global const float* U1, ...
 \end{lstlisting}
 
-\todo{We kunnen dit zien als en tensor van 2x2x2-tensoren}
+
 \subsubsection{Berekenen van \CC{}}
 We moeten nu niet meer \'e\'en element berekenen, maar een blokje van 2x2x2 elementen. Hierdoor wordt \CC{} vergroot van 1 float naar acht floats. Om het ons makkelijk te maken veranderen we het type van \CC{} naar float2. De elementen in \CC{} slaan we op in rij-eerst volgorde. Dit zal het makkelijker maken om achteraf \TT{} van \CC{} af te trekken.
 
@@ -567,6 +612,7 @@ We beginnen met float8x8x8:
 Het deel binnen de R-lus heeft rekenverhoudingen van 64 flop(sp)/float en 64 flop(dp)/double. Als we R zeer hoog maken, kan de totale rekenverhouding boven het kantelpunt komen.
 
 We berekenen nu de rekenverhouding voor float16x16x16:
+
 \begin{tabular}{|l|c| c|c|}
 \hline
 									& flop(sp)					& flop(dp) 					& \# geh. aanvragen	\\
@@ -587,7 +633,27 @@ We berekenen nu de rekenverhouding voor float16x16x16:
 
 We komen uit dat de rekenverhoudingen in de R-lus gelijk is aan 213,33... flop(sp)/float en flop(dp)/double. Als we R hoog maken, kan dit het stuk na de R-lus compenseren. R mag wel een stuk lager liggen dan bij float8x8x8.
 
-\todo{snelle test}
+\begin{table}
+	\centering
+    \begin{tabular}{|l| r|r| r |r|}
+		\hline
+						& \multicolumn{4}{c|}{Rekenkracht voor (I, R) in Gflop(sp)/s}\\
+		\hline
+		Kernel          & 16, 16 	& 16, 6000	& 320, 16	&  320, 6000 \\
+		\hline
+		Float (32)      & 0.1746  	& 7.519   	& 12.23 	& 21.09 	\\
+		Float (64)      & 1.4649	& 10.551  	& 15.41  	& 42.11  	\\
+		Float64         & 2.4085 	& 14.794  	& 36.35 	& 42.08 	\\
+		Float4x4x4      & 2.5327  	& 14.759 	& 40.19 	& 41.97  	\\
+		Float8x8x8      & 2.4306   	& 14.129  	& 257.29  	& 317.52 	\\
+		Float16x16x16   & 1.7531  	& 11.314 	& 669.63  	& 1313.2 	\\
+		\hline
+    \end{tabular}
+    \caption{\label{measF} Overzicht snelheidswinsten door optimalisaties met de toevoegingen van float8x8x8 en float16x16x16.}
+\end{table}
+
+We voegen float8x8x8 en float16x16x16 toe het overzicht van de optimalisaties. (Zie tabel \ref{measF}) Bij lage waardes van I gaat de performantie omlaag omdat er minder work-items zijn alle rekeneenheden bezig te houden. Voor hoge waardes van I zien we duidelijke snelheidswinsten. Zelfs voor een lage R. Float8x8x8 kan er wel niet zoveel van profiteren omdat de rekenverhouding van de R-lus te dicht bij het kantelpunt ligt. In float16x16x16 is het effect van het kantelpunt duidelijk zichtbaar. Het kantelpunt ligt rond R = 30. Voor R = 16 verwachten we dus dat rekenkracht ongeveer halveert.
+
 
 \section{Herschikken van \TT{} in het geheugen}
 \subsection{Het probleem}
@@ -597,7 +663,7 @@ Een float4 is 16 bytes breed en een kanaal is 256 bytes breed. Er passen dus 16 
 
 We zien dat verschillende work-items verschillende kanalen aanspreken. Men kan nagaan dat een work-group alle kanalen gebruikt. Omdat alle work-items synchroon lopen zal het traagste kanaal bepalen hoe snel alle work-items verwerkt worden. De kans dat een work-item betrokken is bij een kanaal-conflict is ook een stuk groter. Dit heeft invloed op de performantie omdat een compute-unit geen ander wavefront kan uitvoeren zolang er kanaal-conflicten zijn. Merk op dat alle andere work-items ook te kampen hebben met dezelfde problemen.
 
-Merk op dat er ook waardes voor $I1$ zijn waarbij float16x16x16 conflict-vrij is. Zo een waarde is bijvoorbeeld 128. Wanneer we 128 vooruitspringen, springen we over alle acht kanalen. Een \code{I1} van 128 komt overeen met 512 floats. Er zijn ook waardes zoals 64 waarbij elke work-item maar twee kanalen gebruikt waardoor het probleem zich maar beperkt voordoet.
+Merk op dat er ook waardes voor $I1$ zijn waarbij float16x16x16 conflict-vrij is. Zo een waarde is bijvoorbeeld 128. Wanneer we 128 vooruitspringen, springen we over alle acht kanalen. Er zijn ook waardes zoals 64 waarbij elke work-item maar twee kanalen gebruikt waardoor het probleem zich maar beperkt voordoet.
 
 \subsection{Aaneengesloten blokken}
 Er zijn verschillende manieren om dit probleem op te lossen. We bespreken nu een eerste oplossing. We gaan de herschikking toepassen op float8x8x8 maar we kunnen die ook op andere kernels toepassen.
@@ -667,7 +733,7 @@ Bij het berekenen van de som verwijderen we de volgende twee lijnen omdat we die
 \begin{lstlisting}
 int lIdx = get_local_id(0) + 4 * get_local_id(1) + 16 * get_local_id(2);
 ...
-int gId = get_group_id(0) + get_num_groups(0) * (get_group_id(1) + get_num_groups(1) * get_group_id(2));
+int gIdx = get_group_id(0) + get_num_groups(0) * (get_group_id(1) + get_num_groups(1) * get_group_id(2));
 \end{lstlisting}
 
 \todo{Herschikking verwaarloosbaar}
@@ -797,6 +863,7 @@ Als $I$ groot genoeg is kunnen we de rekenverhouding benaderen met $R + 1$.  Dit
 \section{Gradi\"ent-kernel}
 Alle voorgaande kernels gebruiken float's, maar we hebben wel alle berekeningen ook voor doubles gedaan. Daarom gaan we voor de gradi"ent met doubles werken. We kunnen alle float-kernels omvormen naar doubles door het sleutelwoord ``float'' te vervangen door ``double''.
 
+\section{double16x16x16FG}
 Als eerste gaan we double16x16x16 aanpassen naar double16x16x16FG. Het verschil er tussen is dat double16x16x16FG ook \FF{} wegschrijft. Dit is een eenvoudige aanpassing:
 \begin{lstlisting}
 //Old
@@ -815,4 +882,65 @@ Als eerste gaan we double16x16x16 aanpassen naar double16x16x16FG. Het verschil 
 	sum4 += temp*temp;
 \end{lstlisting}
 
-De volledige broncode is beschikbaar in appendix \refCode{double16x16x16FG}.
+De volledige broncode is beschikbaar in appendix %\refCode{double16x16x16FG}.
+
+\section{De gradi"ent-kernel}
+We gaan voor deze kernel een 2DRange gebruiken. E\'en dimensie voor $r$ en \'e\'en dimensie voor $i$, $j$ of $k$. We noemen de kernel ``double16x16G'' (double16x16 Gradient) omdat de kernel de gradi\"ent berekent waarbij elke work-group overeenkomt met een $16 \times 16$ blokje in de gradi\"entmatrix. Een work-item komt overeen met een $2 \times 2$ blokje. Er zijn in totaal dus 64 work-items.
+
+We associ\"eren de eerste dimensie van de 2DRange met $r$. Hierdoor zal de GPU eerst work-groups activeren met dezelfde waarde voor $i$ (of $j$ of $k$. Omdat alle work-items elkaar achter de hielen lopen zullen ze vlak na elkaar dezelfde $f_ij'k'$ (of $f_i'jk'$ of $f_i'j'k$) ophalen. Hierdoor kunnen de caches optimaal werken.
+
+We kunnen de gradi"ent berekenen met een eenvoudig algoritme. We geven hieronder zo een algoritme in pseudo-code. Het algoritme berekent enkel elementen uit de eerste gradi\"entmatrix. De algoritmes voor de andere twee gradi\"entmatrices zijn varianten op het algoritme voor de eerste gradi\"entmatrix.
+\begin{lstlisting}
+Gradient(indexMode1, R):
+	sum = 0
+	foreach indexMode2 in [1:I2]:
+		foreach indexMode3 in [1:I3]:
+			sum += 	F[indexMode1, indexMode2, indexMode3] *
+					U2[indexMode2, R] *
+					U3[indexMode3, R]
+	G[indexMode1, R] = sum
+\end{lstlisting}
+
+Het nadeel van bovenstaand algoritme is dat de elementen van \UU{2} en \UU{3} beiden $I_2$ * $I_3$ keer gelezen worden. We kunnen dit optimaliseren door het element van \UU{2} buiten de tweede lus in te lezen.
+
+\begin{lstlisting}
+Gradient(indexMode1, R):
+	sum = 0
+	foreach indexMode2 in [1:I2]:
+		u2 = U2[indexMode2, R]
+		foreach indexMode3 in [1:I3]:
+			sum += 	F[indexMode1, indexMode2, indexMode3] *
+					u2 * U3[indexMode3, R]
+	G[indexMode1, R] = sum
+\end{lstlisting}
+
+We lezen elk element van \UU{2} nu maar \'e\'en maal in. Maar de elementen van \UU{3} lezen we nog steeds $I_2$ keer in.
+We lossen dit op door de elementen van \UU{3} te cachen. De cache is 64 elementen groot, waardoor elk element van $I_3$ maar eenmaal gelezen worden. De elementen van \UU{2} worden nu $I_3/64$ keer gelezen.
+
+De 64 double in de cache nemen over de hele work-group 32KiB van het registergeheugen in. Dit past acht maal in het registergeheugen. Stel dat we de cache delen in het lokaal geheugen. We hebben dan acht caches van 64 doubles nodig. Dit neemt 4 KiB in. Er is maar 32KiB lokaal geheugen beschikbaar. Dit beperkt het aantal work-items ook tot acht. We kiezen toch voor het registergeheugen omdat we bij het lokaal geheugen extra cycli verliezen met de geheugeninstructies.
+
+De pseudo-code:
+
+\begin{lstlisting}
+Gradient(indexMode1, R):
+	sum = 0
+	while elementsLeftInMode3():
+		cacheNext64ElementOfU3()
+		
+		foreach indexMode2 in [1:I2]:
+			u2 = U2[indexMode2, R]
+			foreach cachedU3Element in cache:
+				sum += 	F[indexMode1, indexMode2, indexMode3] *
+						u2 * cachedU3Element
+	G[indexMode1, R] = sum
+
+elementsLeftInMode3():
+	return indexMode3 < I3
+
+cacheNext64ElementOfU3():
+	clear(cache)
+	while elementsLeftInMode3():
+		append(cache, U3[indexMode3, R])
+\end{lstlisting}
+
+We zijn er niet in geslaagd om een correct werkende kernel te schrijven.

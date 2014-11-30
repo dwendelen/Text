@@ -12,18 +12,18 @@ In deze tekst gebruiken we volgende notatie-conventies:
 \begin{tabular}{l l l}
     Vector						& Vetgedrukte kleine letters					& $\vect{v}$\\
     Matrix 						& Normale hoofdletters							& $M$\\
-    Tensor 						& Hoofdletter in een kalligrafisch geschrift	& \TT\\
-    Element						& Kleine letter met een index in subscript		& $e_i$\\
+    Tensor 						& Hoofdletters in een kalligrafisch geschrift	& \TT\\
+    Element						& Kleine letters met een index in subscript	& $e_i$\\
 \end{tabular}
 
-Merk op dat de index ook een vector kan zijn. Deze vector is dan vet gedrukt in kleine letters. Een voorbeeld: $t_{\ii}$.
+Merk op dat de index ook een tupel kan zijn. Deze tupel is dan vet gedrukt in kleine letters. Een voorbeeld: $t_{\ii}$.
 
-We gebruiken ook verzamelingen van matrices. Deze verzamelingen worden genoteerd in vetgedrukte hoofdletters. Een voorbeeld: \UUU{}. Het i-de element van de verzameling \UUU{} noteren we als \UU{i}.
+We gebruiken ook verzamelingen van matrices. Deze verzamelingen worden genoteerd in vetgedrukte hoofdletters. Een voorbeeld: \UUU{}. De i-de matrix van de verzameling \UUU{} noteren we als \UU{i}.
 
 \section{Tensoren}
 Men kan een tensor voorstellen als een $N$-dimensionale rij. We spreken dan over een $N$-de-orde tensor $\tensor{T}$. $\tensor{T}$ heeft $N$ modes en orde is gelijk aan $N$. Formeel schrijven we $\tensor{T} \in \R^{I_1 \times \dotsb \times I_N}$. $I_n$ is gelijk aan het aantal elementen in mode $n$. Tensoren zijn ook gedefini\"eerd voor complexe getallen, maar we gaan ons beperken tot de rationale getallen.
 
-Een element van een derde-orde tensor $\tensor{T}$ noteren we als $t_{ijk}$. $i$ komt overeen met de eerste mode, $j$ met de tweede en $k$ met de derde mode. Een element van een $N$-de-orde tensor schrijven we als $t_{\ii{}}$ met $\ii{} \in \I$. We defini\"eren de indexverzameling $\I$ als de verzameling van alle vectoren die een geldige index van de tensor zijn.
+Een element van een derde-orde tensor $\tensor{T}$ noteren we als $t_{ijk}$. $i$ komt overeen met de eerste mode, $j$ met de tweede en $k$ met de derde mode. Een element van een $N$-de-orde tensor schrijven we als $t_{\ii{}}$ met $\ii{} \in \I$. We defini\"eren de indexverzameling $\I$ als de verzameling van alle tupels die een geldige index van de tensor zijn.
 \[
     \I = \{\ii{} \in \N_0^N | \forall n \in [1, N]: i_n \in [1, I_n]\}
 \]
@@ -33,18 +33,18 @@ Een element van een derde-orde tensor $\tensor{T}$ noteren we als $t_{ijk}$. $i$
 
 Er bestaan ook tweede -en eerste-orde tensoren. Een tweede-orde tensor is gekend onder de naam matrix. Een eerste-orde matrix noemen we ook een vector. We zullen steeds de matrix (vector)-notatie gebruiken wanneer een tensor van de tweede(eerste) orde is.
 
-Tensoren kunnen met elkaar opgeteld worden. $\tens{A} + \tens{B} = \tens{C}$ als en slechts als:
+We kunnen tensoren met elkaar opgetellen. $\tens{A} + \tens{B} = \tens{C}$ als en slechts als:
 \[
 	\forall \ii{} \in \I: c_{\ii{}} = a_{\ii{}} + b_{\ii{}}
 \]
 
-Het is ook mogelijk om de Frobeniusnorm te nemen van een tensor. Deze norm is gelijk aan de som van de kwadraten van alle elementen van de tensor. Wanneer we in deze tekst over de norm van een tensor spreken, spreken we over de Frobeniusnorm.
+Het is ook mogelijk om de Frobeniusnorm te nemen van een tensor. Deze norm is gelijk aan de som van de kwadraten van de elementen van de tensor. Wanneer we in deze tekst over de norm van een tensor spreken, spreken we over de Frobeniusnorm.
 \[
 	||\tens{T}||^2 = \sum_{\ii{} \in \I} t_{\ii{}}^2
 \]
 
 \section{Canonieke Polyadische Decompositie (CPD)}
-We kunnen een tensor $\tens{T}$ benaderen met de Canonieke Polyadische Decompositie, afgekort CPD.%\todo{referentie}
+We kunnen een tensor $\tens{T}$ benaderen met de Canonieke Polyadische Decompositie, afgekort CPD. \todo{referentie}
 Deze ontbinden kunnen we als volgt defini\"eren:
 \[
     t_{\ii{}} \approx c_{\ii{}} = \sum_{r=1}^{R} \prod_{n=1}^{N} u^{(n)}_{i_{n}r} \qquad
@@ -72,21 +72,21 @@ We noemen R de rang van de decompositie en \UUU{} noemen we de factormatrices. Z
 \end{align*}
 
 We defini\"eren de doelfunctie $f(\T, \mUUU)$ als de frobeniusnorm van \FF{}. Wanneer we $f$ schrijven bedoelen we %soms ook
-de waarde van $f(\T, \mUUU)$ voor de huidige waarde van \TT{} en \UUU{}.
+de waarde van $f(\T, \mUUU)$ voor de huidige waardes van \TT{} en \UUU{}.
 \begin{align*}
     f(\T, \mUUU) &= ||\tens{F}||^2\\
     f(\T, \mUUU) &= \sum_{\ii{} \in \I} f_{\ii{}}^2\\
     f(\T, \mUUU) &=  \sum_{\ii{} \in \I} \left( \left( \sum_{r=1}^{R} \prod_{n=1}^{N} u^{(n)}_{i_{n}r} \right) - t_{\ii{}} \right)^2
 \end{align*}
 
-Het doel van alle optimalisatie-algoritmes is om de \UUU{} te vinden voor een gegeven \TT{} waarvoor $f(\T, \mUUU)$ minimaal is.
+Het doel van elk optimalisatie-algoritme is om de \UUU{} te vinden voor een gegeven \TT{} waarvoor $f(\T, \mUUU)$ minimaal is.
 \[
     \min_{\mUUU} \sum_{\ii{} \in \I} \left( \left( \sum_{r=1}^{R} \prod_{n=1}^{N} u^{(n)}_{i_{n}r} \right) - t_{\ii{}} \right)^2
 \]
 
-De gradi\"ent gebaseerde optimalisatie-algoritmes vormen een groep van algoritmes om een optimale \UUU{} te vinden. Deze algoritmes gaan van de methode van de stijlste helling (de eenvoudigste) tot geavanceerdere algoritmes zoals beperkt-geheugen BFGS \cite{bfgs}. Wat al deze algoritmes gemeenschappelijk hebben is dat ze de gradi\"ent van $f(\T, \mUUU)$ gebruiken om tot een optimale oplossing te komen.
+De gradi\"ent gebaseerde optimalisatie-algoritmes vormen een groep van algoritmes om een optimale \UUU{} te vinden. E\'en van de eenvoudigste algoritmes in deze groep is de methode van de stijlste helling maar er zijn ook geavanceerdere algoritmes zoals beperkt-geheugen BFGS \cite{bfgs}. Wat al deze algoritmes gemeenschappelijk hebben is dat ze de gradi\"ent van $f(\T, \mUUU)$ gebruiken om op een iteratieve manier tot een optimale oplossing te komen.
 
-We slaan de gradi\"ent op in de gradi\"entmatrices \GGG{}. \GGG{} heeft dezelfde dimensies als \UUU{}. We gaan nu afleiden hoe we de gradi\"ent van $f(\T, \mUUU)$ gaan berekenen. Aan de linkerkant gaan we de gradi\"ent afleiden van een derde-orde tensor voor een element uit de eerste gradi\"entmatrix. Aan de rechterkant gaan we de gradi\"ent afleiden van tensoren in het algemeen.
+We slaan de gradi\"ent op in de gradi\"entmatrices \GGG{}. \GGG{} heeft dezelfde dimensies als \UUU{}. We gaan nu afleiden hoe men de gradi\"ent van $f(\T, \mUUU)$ berekent. Aan de linkerkant gaan we de gradi\"ent afleiden van een derde-orde tensor voor een element uit de eerste gradi\"entmatrix. Aan de rechterkant gaan we de gradi\"ent afleiden van tensoren in het algemeen.
 \begin{align*}
 	g^{(1)}_{ir} 	&:= \frac{\partial f(\T, \mUUU)}{\partial u^{(1)}_{ir}} &
     g^{(n)}_{ir} 	&:= \frac{\partial f(\T, \mUUU)}{\partial u^{(n)}_{ir}}\\
