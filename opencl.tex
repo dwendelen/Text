@@ -77,12 +77,13 @@ De X-component van de work-groupgrootte moet een gehele deler zijn van de X-comp
 \label{h:opencl:geheugen}
 OpenCL kent drie soorten geheugen:
 \begin{itemize}
-    \item Privaat geheugen: enkel toegankelijk voor een work-item. Niet toegankelijk voor alle andere work-items.
+    \item Privaat geheugen: enkel toegankelijk binnen een work-item. Niet toegankelijk voor alle andere work-items.
     \item Lokaal geheugen: gedeeld met alle work-items van de work-group, niet toegankelijk buiten de work-group.
     \item Globaal geheugen: toegankelijk voor alle work-items.
 \end{itemize}
 
-We kunnen de gegevens in het RAM-geheugen enkel gekopi\"eren naar het globaal geheugen. Een work-item kan dan de gegevens lezen uit het globaal geheugen en opslaan in het privaat geheugen. Work-items kunnen ook gegevens schrijven naar het lokaal geheugen. Deze gegevens kunnen dan door andere work-items binnen dezelfde work-group gelezen worden. Zie figuur \ref{geheugenCL} voor een schematische voorstelling van de gegevensstromen tussen de soorten geheugens.
+We kunnen de gegevens in het RAM-geheugen enkel kopi\"eren naar het globaal geheugen. Een work-item kan dan de gegevens lezen uit het globaal geheugen en opslaan in het privaat geheugen. Work-items kunnen ook gegevens schrijven naar het lokaal geheugen.
+Andere work-items binnen dezelfde work-group kunnen deze gegevens dan lezen. Zie figuur \ref{geheugenCL} voor een schematische voorstelling van de gegevensstromen tussen de soorten geheugens.
 
 \begin{figure}[]
 \centering
@@ -91,19 +92,19 @@ We kunnen de gegevens in het RAM-geheugen enkel gekopi\"eren naar het globaal ge
 \end{figure}
 
 \subsection{Synchronisatie}
-Niet alle work-items lopen synchroon. Dit kan voor problemen zorgen wanneer een work-item gegevens moet lezen die door een ander work-item geschreven zijn. Daarom is het mogelijk om synchronizatiepunten toe te voegen. Dit kan op twee niveau's. We kunnen alle work-items in een work-group synchroniseren en alle work-items in de NDRange. Wanneer een work-item een synchronizatiepunt tegen komt zal het daar stoppen met uitvoeren. De work-items gaan pas verder wanneer alle work-items het synchronizatiepunt bereikt hebben. Dit heeft meestal een negatief effect op de performantie en moet zo veel mogelijk vermeden worden.
+Niet alle work-items lopen synchroon. Dit kan voor problemen zorgen wanneer een work-item gegevens moet lezen die door een ander work-item nog niet geschreven zijn. Daarom is het mogelijk om synchronizatiepunten toe te voegen. Dit kan op twee niveau's. We kunnen alle work-items in een work-group synchroniseren en alle work-items in de NDRange. Wanneer een work-item een synchronizatiepunt tegen komt zal het daar stoppen met uitvoeren. De work-items gaan pas verder wanneer alle betrokken work-items het synchronizatiepunt bereikt hebben. Het gebruik van synchronizatiepunten heeft meestal een negatief effect op de performantie.
 
 %\section{<stuff over cpu en gpu>}
 
 \section{Architectuur AMD Radeon HD 6970}
 \subsection{Rekeneenheden}
 
-Wanneer we een kernel lanceren gaat de GPU de work-groups verdelen over de compute-units. Dit is de taak van de Ultra-Threaded Dispatch Processor (UTDP). De UTDP zal pas nieuwe work-groups toewijzen wanneer de compute-unit tijdelijk geen werk meer heeft.  Wanneer een work-group toegewezen is zeggen we dat de work-group actief is. 
+Wanneer we een kernel lanceren gaat de GPU de work-groups verdelen over de compute-units  (CU's). Dit is de taak van de Ultra-Threaded Dispatch Processor (UTDP). De UTDP zal pas nieuwe work-groups toewijzen wanneer de compute-unit tijdelijk geen werk meer heeft.  Wanneer een work-group toegewezen is zeggen we dat de work-group actief is. 
 
 \label{WGvolg}
-De UTDP zal work-groups in de volgende volgorde activeren. De UTDP activeert eerst work-group (0, 0, 0). Daarna is work-group (1, 0, 0) aan de beurt. Wanneer de UTDP door X-waardes is geroteerd, is het de beurt aan work-groep (0, 1, 0). We noemen dit een rij-eerst volgorde. De work-groups worden ook in die volgorde verwijderd. Hierdoor zijn de geactiveerde work-groups altijd aaneensluitend.\cite[p.~6-8]{amd}
+De UTDP zal work-groups in de volgende volgorde activeren. De UTDP activeert eerst work-group (0, 0, 0). Daarna is work-group (1, 0, 0) aan de beurt. Wanneer de UTDP door alle X-waardes is geroteerd, is het de beurt aan work-groep (0, 1, 0). We noemen dit een rij-eerst volgorde. De work-groups worden ook in die volgorde verwijderd. Hierdoor zijn de geactiveerde work-groups altijd aaneensluitend.\cite[p.~6-8]{amd}
 
-Elke compute-unit (CU) heeft een command-processor die verantwoordelijk is voor het selecteren en ophalen van de instructies. Omdat elke CU een eigen command-processor heeft, werken CU's volledig zelfstandig en los van alle andere CU's.
+Elke compute-unit heeft een command-processor die verantwoordelijk is voor het selecteren en ophalen van de instructies. Omdat elke CU een eigen command-processor heeft, werken CU's volledig zelfstandig en los van alle andere CU's.
 
 De compute-unit bestaat, naast de command-processor, ook uit 16 processing-elementen (PE). Alle processing-elementen binnen een compute-unit worden aangestuurd door de command-processor in de compute-unit. Hierdoor voeren alle processing-elementen altijd dezelfde instructie uit.
 
@@ -132,7 +133,7 @@ Alle processing-elementen binnen dezelfde compute-unit voeren dezelfde instructi
 
 Alle work-items van een wavefront komen uit dezelfde work-group. We splitsen de work-group op in groepjes van 64 work-items. Als het aantal work-items in een work-group geen geheel veelvoud is van 64, zal het laatste groepje aangevuld worden met 'lege' work-items. Wanneer de UTDP een work-group activeert, activeert die ook de wavefronten die deel uit maken van die work-group.
 
-Merk op dat alle workitems in het wavefront tijdens golf dezelfde instructie uitvoeren. Hieruit volgt dat alle work-items in een wavefront altijd synchroon lopen.
+Merk op dat alle work-items in het wavefront tijdens golf dezelfde instructie uitvoeren. Hieruit volgt dat alle work-items in een wavefront altijd synchroon lopen.
 
 
 
@@ -147,9 +148,11 @@ Elk processing-element kan elke cyclus twee vierbyte aanvragen doen. Deze twee a
 Elke compute-unit heeft 16Ki registers van elk vier keer vier bytes. Dit geeft in totaal 256KiB en is dus acht keer zo groot als het lokaal geheugen. De registers worden gedeeld door alle actieve work-groups op de compute-unit maar de work-items hebben enkel toegang tot de registers die aan hen zijn toegewezen. Elke cyclus kan elk processing-element twaalf vierbytes lezen uit het registergeheugen. Dit is juist genoeg om elke ALU een multiply-add (MAD) in enkele precisie te laten uitvoeren in \'e\'en cyclus.
 
 \subsubsection{Globaal geheugen}
-De GPU heeft 2GiB geheugen waarvan we 1GiB als globaal gedeeld geheugen kunnen gebruiken. Dit geheugen wordt gedeeld door alle work-items over het hele apparaat. Wanneer een wavefront een geheugenaanvraag doet, zal de compute-unit dit bundelen en doorsturen naar \'e\'en van de acht geheugencontrollers. Elke controller is op zijn beurt verbonden met meerdere banken. We zeggen dat alle gegevens die door dezelfde geheugencontroller werkt worden, naar hetzelfde kanaal gaan. Er is \'e\'en geheugencontroller per kanaal.
+De GPU heeft 2GiB geheugen waarvan we 1GiB als globaal gedeeld geheugen kunnen gebruiken. Dit geheugen wordt gedeeld door alle work-items over het hele apparaat. Wanneer een wavefront een geheugenaanvraag doet, zal de compute-unit dit bundelen en doorsturen naar \'e\'en van de acht geheugencontrollers. Elke controller is op zijn beurt verbonden met meerdere banken. We zeggen dat alle gegevens die door dezelfde geheugencontroller verwerkt worden, naar hetzelfde kanaal gaan. Er is \'e\'en geheugencontroller per kanaal.
 
 De controller verwerkt de aanvraag en 300 tot 600 cycli later is het resultaat beschikbaar. Deze 300 tot 600 cycli noemen we de traagheid (latency) van het geheugen. Dit betekent echter niet dat de geheugencontroller 300 tot 600 cycli stil staat. Er kan \'e\'en 128 bit aanvraag gedaan worden per geheugencyclus.
+
+De traagheid is variabel in de tijd omdat het globaal geheugen een DRAM geheugen is. DRAM geheugen bestaat uit condensatoren die langzaam hun lading verliezen. Om te voorkomen dat een condensator te veel lading verliest zal het geheugen af en toe het geheugen verversen. Wanneer het geheugen ververst wordt, is die niet toegankelijk voor lees -en schrijfoperaties.
 
 Wanneer een work-item een geheugenaanvraag doet, moet het heel wavefront 300 tot 600 cycli wachten. Gedurende deze tijd wordt het hele wavefront in een wachttoestand gezet. Tijdens deze wachttijd krijgen de andere actieve wavefronten de kans om uitgevoerd te worden. Het wavefront wordt terug pas terug actief wanneer alle geheugenaanvragen van alle work-items volledig rond zijn.
 
@@ -168,7 +171,7 @@ Omdat het globaal geheugen een lage bandbreedte en een hoge traagheid heeft, zij
     \item Wanneer alle work-items van een wavefront in dezelfde cyclus hetzelfde adres uitlezen.
 \end{itemize} 
 
-Wanneer het adres al bij het compileren bekend is en de inhoud niet van waarde verandert, dan wordt de inhoud gecached in de constanten-cache. Deze inhoud wordt automatisch ingeladen vlak voor het gebruik ervan en levert snelheden tot 256 bytes per cyclus per compute-unit. Dit is twee maal zo snel als het lokaal geheugen en maar drie maal zo traag als de registers. Deze situatie komt meestal voor bij eenvoudige constanten en bij kernel-parameter.
+Wanneer het adres al bij het compileren bekend is en de inhoud niet van waarde verandert, dan wordt de inhoud gecached in de constanten-cache. Deze inhoud wordt automatisch ingeladen vlak voor het gebruik ervan en levert snelheden tot 256 bytes per cyclus per compute-unit. Dit is twee maal zo snel als het lokaal geheugen en maar drie maal zo traag als de registers.
 
 Zie figuur \ref{geheugen6970} voor een schematische voorstelling van het globaal geheugen en alle caches.
 
@@ -186,27 +189,23 @@ De verschillende soorten geheugen hebben verschillende groottes en snelheden. We
     \begin{tabular}{|l |c| r |r|}
 		\hline
         Geheugen 	& \'e\'en per 		&
-        \begin{tabular}{@{}c@{}}Snelheid \footnote{over hele GPU} \\ (KiB)\end{tabular} &
-        \begin{tabular}{@{}c@{}}Grootte \footnote{over hele GPU}\\	(TB/s)\end{tabular}  \\
+        \begin{tabular}{@{}c@{}}Grootte\\ (KiB)\end{tabular} &
+        \begin{tabular}{@{}c@{}}Snelheid\\	(TB/s)\end{tabular}  \\
         \hline
         Register	& compute-unit		& 6144		& 16,220 \\
         Lokaal		& compute-unit		& 768		& 2,703 \\
         Constant	&vier compute-units	& 48		& 5,407 \\
         L1-cache	& compute-units		& 192		& 1,352 \\
         L2-cache	&geheugencontroller	& 512		& 0,451 \\
-        Globaal		& apparaat			& 1GiB		& 0,176 \\
+        Globaal		& apparaat		& 1GiB		& 0,176 \\
         \hline
     \end{tabular}
-    \caption{\label{geheugenSnelheden}Een vergelijking van de soorten geheugen in de GPU. Bron: handleiding AMD\cite[p.~D-3]{amd}}
+    \caption{\label{geheugenSnelheden}Een vergelijking van de soorten geheugen in de GPU. Bron: handleiding AMD\cite[p.~D-3]{amd}. De gegeven grootte en de snelheid zijn gerekend over de hele GPU.}
 \end{table}
 
 \section{Aandachtspunten voor optimalisaties}
 \subsection{Wavefronten}
-Men kan er best voor zorgen dat het aantal work-items in een work-group een geheel veelvoud is van 64. Wanneer dit niet het geval is, zullen wavefronten aangevuld worden met 'lege' work-items. Hierdoor zal de rekenkracht beperkt worden. Stel dat er maar 32 work-items in een work-group zitten. Er zullen dan maar twee van de vier cycli gebruikt worden voor nuttig rekenwerk. De rest van de tijd zal er niets gebeuren. Hierdoor zal de rekenkracht van de GPU halveren.
-
-Het is ook belangrijk om voldoende wavefronten actief te hebben om alle vormen van traagheid te maskeren. Vanaf dat er genoeg wavefronten actief zijn, heeft het geen zin meer om er meer actief te maken.
-
-Er zijn echter enkele limieten op het aantal wavefronten die gelijktijdig actief kunnen zijn. Indien er niet genoeg wavefronten zijn zullen zowel de compute-unit als de geheugencontroller stil vallen.
+Men kan er best voor zorgen dat het aantal work-items in een work-group een geheel veelvoud is van 64. Wanneer dit niet het geval is, zullen wavefronten aangevuld worden met 'lege' work-items. Dit beperkt de rekenkracht. Stel dat er maar 32 work-items in een work-group zitten. De grafische kaart gebruikt dan maar twee van de vier cycli voor nuttig rekenwerk. De rest van de tijd zal er niets gebeuren. Hierdoor zal de rekenkracht van de GPU halveren.
 
 De work-groups, en dus ook de wavefronten, worden rij-eerst geactiveerd en ook in die volgorde verwijderd\cite[p.~6-8]{amd}. Hierdoor zijn de geactiveerde wavefronten altijd aaneensluitend.
 
@@ -216,6 +215,8 @@ Wanneer we een instructie uitvoeren duurt het acht cycli voor het resultaat erva
 Een globaal geheugenaanvraag duurt 300 tot 600 cycli. Laten we voor deze berekening veronderstellen dat de traagheid gelijk is aan 400 cycli. We stellen ook dat er na elke leesinstructie, vijf rekeninstructies zijn en dan terug een leesinstructie enzovoorts. Een wavefront bestaat uit vier cycli die elk vijf instructies uitvoeren voor ze zelf een geheugenaanvraag doen. Er zijn voor dit voorbeeld dus 20 (400 / (4 * 5)) wavefronten per compute-unit nodig om de traagheid van het globaal geheugen te maskeren.
 
 \subsubsection{Limieten}
+Er zijn echter enkele limieten op het aantal wavefronten die gelijktijdig actief kunnen zijn. Indien er niet genoeg wavefronten zijn zullen zowel de compute-unit als de geheugencontroller stil vallen.
+
 De eerste en meest eenvoudige limiet is dat er maximaal 512 wavefronten tegelijkertijd actief kunnen zijn op de grafische kaart. Dit zijn er ongeveer 21 per compute-unit en dus net genoeg voor het bovenstaande voorbeeld.
 
 De registers worden door alle work-items op een compute-unit gedeeld. Het aantal nodige registers per work-item is gekend na de compilatie. Stel dat elk work-item 32 registers nodig heeft. Dat zijn er 2Ki per wavefront. Er zijn 16 Ki registers beschikbaar, dus er kunnen dan exact acht wavefront gelijktijdig actief zijn per compute-unit. In de handleiding van AMD \cite{amd} kan u tabel 6.8 terugvinden op p.~6-28. Deze tabel geeft een overzicht van het effect van het gebruik van het lokaal geheugen op het maximaal aantal actieve wavefronten.
@@ -240,20 +241,20 @@ Het globaal geheugen werkt met blokken van 128 bytes. Dit komt overeen met een f
 \subsection{Lokaal geheugen}
 \subsubsection{Float4}
 \label{fl4BankConfl}
-Beschouw onderstaand fragment uit een kernel waarbij een work-group bestaat uit 64 work-items en de NDRange slechts \'e\'en dimensie heeft.
+Beschouw onderstaand fragment uit een kernel. In dit voorbeeld bestaat een work-group uit 64 work-items en de NDRange heeft slechts \'e\'en dimensie.
 \begin{lstlisting}
     ...
-    __local float4* l[64];
-    float4 v;
+    __local float4* arrayOnLocalMemory[64];
+    float4 someVariable;
     ...
-    v = l[get_local_id(0)];
+    someVariable = arrayOnLocalMemory[get_local_id(0)];
     ...
 \end{lstlisting}
 Het lokaal geheugen kan elke bank twee vierbyte waarden per cyclus verwerken, een float4 bestaat uit vier vierbyte waarden en een wavefront bestaat uit vier cycli. Men zou dus denken dat de geheugenaanvraag in totaal acht cycli in beslag zal nemen. Maar omdat we eerst de eerste twee vierbytes opslaan en dan pas de volgende twee, gebruiken we elke cyclus slechts de helft van de banken en zal het in totaal 16 cycli duren voor alle geheugenaanvragen volledig rond zijn. Men moet dit eenvoudig patroon vermijden.
 
 \subsubsection{Alternatieven}
-Er zijn alternatieven voor het lokaal geheugen die zeker overwogen moeten worden. Een eerste alternatief is de L1-cache. De L1-cache is niet rechtstreek aanstuurbaar en kunnen we enkel gebruiken voor lees-operaties. Het is ook kleiner dan het lokaal geheugen. Maar het heeft ook voordelen. Een eerste voordeel is dat de L1-cache wordt gedeeld door alle actieve work-groups op de compute-unit. Daarnaast krijgt het lokaal geheugen het moeilijk wanneer de gegevenstypes groter zijn dan acht bytes. (zie hierboven \ref{fl4BankConfl}) Het lokaal geheugen is maar twee maal zo snel als de L1-cache, maar we moet het wel eerst vullen.
+Er zijn alternatieven voor het lokaal geheugen we zeker moeten overwegen. Een eerste alternatief is de L1-cache. De L1-cache is niet rechtstreek aanstuurbaar en kunnen we enkel gebruiken voor leesoperaties. Het is ook kleiner dan het lokaal geheugen. Maar het heeft ook voordelen. Een eerste voordeel is dat de L1-cache wordt gedeeld door alle actieve work-groups op de compute-unit. Een ander voordeel is dat het lokaal geheugen het moeilijk krijgt wanneer de gegevenstypes groter zijn dan acht bytes. (zie hierboven \ref{fl4BankConfl}) Omdat de L1-cache een cachegeheugen is moeten we geen extra instructie uitvoeren om het geheugen te vullen.
 
-Een tweede alternatief is het registergeheugen. Dit geheugen is niet gedeeld met de andere work-items waardoor er meerdere kopie\"en van de gegevens bestaan. Aan de andere kant is het registergeheugen acht keer zo groot en zes maal zo snel als het lokaal geheugen. Een ander nadeel van het registergeheugen is dat de indices al tijdens het compilen gekend moeten zijn. Net als het lokaal geheugen heeft de programmeur hier volledige controle over en moet het eerst ingeladen worden.
+Een tweede alternatief is het registergeheugen. Dit geheugen is niet gedeeld met de andere work-items waardoor er meerdere kopie\"en van de gegevens bestaan. Aan de andere kant is het registergeheugen acht keer zo groot en zes maal zo snel als het lokaal geheugen. Een ander nadeel van het registergeheugen is dat de indices al tijdens het compilen gekend moeten zijn. Net als het lokaal geheugen heeft de programmeur hier volledige controle over en moeten we een extra instructie uitvoeren om het registergeheugen te vullen.
 
-Het laatste alternatief is de contanten-cache. Net als de L1-cache is het enkel toegankelijk voor leesoperaties. Een ander nadeel is dat de adressen gekend moeten zijn bij compilatie. Het is ook zeer beperkt in grootte. De grootste voordelen zijn dat het twee maal zo snel is als het lokaal geheugen; geen problemen heeft met gegeventype die groter zijn dan acht bytes; en dat het niet ingeladen moet worden.
+Het laatste alternatief is de contanten-cache. Net als de L1-cache is het enkel toegankelijk voor leesoperaties. Een ander nadeel is dat de adressen gekend moeten zijn bij compilatie. Het is ook zeer beperkt in grootte. De grootste voordelen zijn dat het twee maal zo snel is als het lokaal geheugen; geen problemen heeft met gegeventype die groter zijn dan acht bytes; en dat de CU geen instructie moet uitvoeren om het in te laden.

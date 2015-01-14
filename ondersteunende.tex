@@ -1,0 +1,17 @@
+\chapter{Ondersteunende software en matlab-brug}
+\label{h:ondersteunende}
+\section{Ondersteunende software}
+Met de kernels alleen kunnen we niet veel doen. We willen graag de kernels gebruiken in andere berekeningen. Om het makkelijk te maken om de kernels te integreren in andere software hebben we een software laag gemaakt die het gebruik van de kernels eenvoudiger maakt. We noemen deze software de ondersteunende software.
+
+De ondersteunende software bestaat uit drie groepen van klasses. De klasse \code{ContextQueue}, de buffer factories en de kernel-klasses.
+
+De klasse \code{ContextQueue} beheert alle objecten van OpenCL die met de huidige 'OpenCL-sessie' te maken hebben en is de eerste klasse die de gebruiker moet initialiseren. Bij de initialisatie moet de gebruiker ook meegeven of hij/zij de kernels wilt profilen of niet.
+
+De buffer factories zijn verantwoordelijk voor het beheren en aanmaken van de OpenCL-buffers. De buffer factories helpen ook bij het wegschrijven en uitlezen van gegevens naar en van de OpenCL-buffers. Het is belangrijk dat de gebruiker een buffer factory aanmaakt die compatibel is met kernels die hij/zij wenst uit te voeren. Alle buffer factories erven over van \code{BufferFactory}.
+
+De laaste groep van klasses zijn de kernel-klasses. Voor elke OpenCL-kernel is er een klasse die verantwoordelijk is voor het juist instellen van de parameters die de kernel verwacht. De meeste kernel-klasses hebben een methode \code{setBuffers(BufferFactory)} die de buffers in de BufferFactory juist koppelt aan de OpenCL-kernel. Voor de gebruiker een kernel-klasse kan gebruiken moet hij/zij de kernel eerst compileren met de \code{compile()} methode. Alle kernel-klasses erven over van \code{Kernel}.
+
+\todo{chaining}
+
+\section{Matlab-brug}
+De ondersteunende software zorgt zelf niet voor de invoer en handelt niet zelf de uitvoer af. De invoer en uitvoer komt uit andere berekeningen in matlab. Om te kunnen interageren met matlab moeten we dus een stukje software schrijven dat matlab verbind met de ondersteunende software. Dit stukje software noemen we de matlab-brug.

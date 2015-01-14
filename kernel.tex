@@ -1,6 +1,7 @@
 \chapter{Kernels}
 \label{h:kernels} 
-In dit hoofdstuk gaan we de kernels bespreken die we ontwikkeld hebben. We beperken ons tot derde-orde tensoren. In een later hoofdstuk doen we voorstellen voor hogere-orde tensoren. We gaan ons ook focussen op kernels voor de grafische kaart.
+In dit hoofdstuk gaan we de kernels bespreken die we ontwikkeld hebben. We beperken ons tot derde-orde tensoren.
+We gaan ons ook enkel focussen op kernels voor de grafische kaart. Omdat we de kernels geoptimaliseerd zijn voor
 
 \section{Geschiktheid bepalen}
 Voor we een kernel ontwikkelen gaan we eerst kijken of de snelheid van het algoritme beperkt wordt door het geheugen of de rekenkracht. Hiervoor voeren we twee nieuwe begrippen in: de rekenverhouding en het kantelpunt.
@@ -36,12 +37,12 @@ Wanneer de rekenverhouding hoger is dan het kantelpunt, wordt de uitvoeringstijd
 
 Stel dat de rekenverhouding slechts de helft is van het kantelpunt en dat we in dubbele precisie werken. Dit betekent dat de rekeneenheden maar aan de helft van hun snelheid kunnen werken en dat het geheugen aan volle snelheid kan werken. Omdat we maar de helft van de rekenkracht kunnen gebruiken, kunnen we slechts 338 Gflop(dp)/s verwerken.
 
-Wanneer de rekenverhouding gelijk is 14,4 flop(dp)/double (het kantelpunt van de CPU) aan halen de CPU's 115,2 Gflop(dp)/s en haalt de GPU 316,5 Gflop(dp)/s. (675,75 Gflop(dp)/s $\times$ (14,4 flop(dp)/double $\div$ 30,71 flop(dp)/double)) Wanneer de rekenverhouding nog lager is, gaan blijft de verhouding tussen de rekenkracht van de CPU's en de rekenkracht van de GPU constant.
+Wanneer de rekenverhouding gelijk is aan 14,4 flop(dp)/double (het kantelpunt van de CPU) halen de CPU's 115,2 Gflop(dp)/s en haalt de GPU 316,5 Gflop(dp)/s. (675,75 Gflop(dp)/s $\times$ (14,4 flop(dp)/double $\div$ 30,71 flop(dp)/double)) Wanneer de rekenverhouding nog lager is, blijft de verhouding tussen de rekenkracht van de CPU's en de rekenkracht van de GPU constant.
 
-Men zou kunnen denken dat de GPU altijd superieur is aan de CPU's. Maar dan vergeet men dat er een grote traagheid is op het geheugen van de GPU en dat er genoeg wavefronten moeten zijn om de piek-performantie van de GPU te kunnen bereiken. Dit zal niet altijd het geval zijn. Een eenvoudig voorbeeld hiervan is het berekenen van een recursieve reeks.
+Men zou dus kunnen denken dat de GPU altijd superieur is aan de CPU's. Maar dan vergeet men dat er een grote traagheid is op het geheugen van de GPU en dat er genoeg wavefronten moeten zijn om de piek-performantie van de GPU te kunnen bereiken. Dit zal niet altijd het geval zijn. Een eenvoudig voorbeeld hiervan is het berekenen van een recursief gedefinieerde reeks.
 
 \subsection{Berekenen van de flop's}
-Sommige drijvendekomma-operaties duren op de GPU langer om uit te voeren dan andere operaties. Tijdens het berekenen van de flop's gaan we hier rekening mee houden. Tabel \ref{flopTabel} geeft een overzicht van het aantal flops die we aan een operatie toekennen.
+Sommige drijvendekomma-operaties vragen meer rekenkracht van de GPU dan andere operaties. Tijdens het berekenen van de flop's gaan we hier rekening mee houden. Tabel \ref{flopTabel} geeft een overzicht van het aantal flops die we aan een operatie toekennen.
 
 \begin{table}
 	\centering
@@ -61,7 +62,7 @@ Sommige drijvendekomma-operaties duren op de GPU langer om uit te voeren dan and
 	\caption{\label{flopTabel} Deze tabel geeft het aantal operaties dat een processing-element kan uitvoeren in \'e\'en cyclus. (Bron: handleiding AMD\cite[p.~6-41]{amd}) Hieruit worden de gewichten bepaald voor het berekenen van de flop's.}
 \end{table}
 
-We hebben de tabel als volgt opgesteld. Eerst hebben we de eerste kolom ingevuld. Deze informatie komt uit de handleiding van AMD\cite[p.~6-41]{amd}. Daarna hebben we de flop's voor een MAD gelijksteld aan twee. We doen dit omdat we bij het berekenen van de rekenkracht, het aantal flop's voor een MAD ook gelijkstellen aan twee. Daarna vullen we de rest van tweede kolom aan met de MAD als referentie.
+We hebben de tabel als volgt opgesteld. Eerst hebben we de eerste kolom ingevuld. Deze informatie komt uit de handleiding van AMD\cite[p.~6-41]{amd}. Daarna hebben we de flop's voor een multiply-add (MAD) gelijksteld aan twee. Vervolgens vullen we de rest van tweede kolom aan met de MAD als referentie.
 
 Bij het toewijzen van flop's moeten we echter opletten. Als we de MAD negeren zullen we onterecht extra flop's aanrekenen. Stel dat we het aantal flops willen berekenen van volgende bewerking: $a = (b*c*d) + e$. Als we de MAD negeren komen we uit op zes flop. (zowel voor dubbele als voor enkele precisie) We zullen rekening houden met de MAD door de som van de MAD gelijk te stellen aan 0 flop's. In het voorgaande voorbeeld rekenen we dus als volgt: \\MUL + MUL + ADD $\rightarrow$ 2 + 2 + 0 (MAD) = 4 flop. We zullen ook steeds aangeven wanneer we de som niet meerekenen vanwege de MAD.
 
@@ -95,19 +96,6 @@ $f $		&$= \sum a_{ijk}$					& 0 (MAD)			& 0 (MAD)			&	0				\\
 \hline
 \end{tabular}
 
-%We kunnen het algoritme in twee stukken verdelen. De stukken die in O($R \cdot I^3$) keer uitgevoerd worden, en de stukken die $ I^3$ keer worden uitgevoerd. De twee stukken worden in bovenstaande tabel gescheiden door een horizontale lijn.
-
-%Voor het eerste stuk is de rekenverhouding gelijk aan:
-%\[
-%    \frac{2R (I^2 + I^3)}{3RI} = \frac{2}{3}(I + I^2)
-%\]
-
-%Voor het tweede stuk is rekenverhouding gelijk aan:
-%\[
-%    \frac{2I^3}{I^3} = 2
-%\]
-
-%Als $I$ groot genoeg is kan het eerste stuk compenseren voor het tweede stuk. Voor de twee stukken samen is de rekenverhouding gelijk aan:
 De totale rekenverhouding is gelijk aan:
 
 \begin{align*}
@@ -120,7 +108,7 @@ De totale rekenverhouding is gelijk aan:
 \caption{\label{haalF}De rekenverhoudingen van $f(\T, \mUUU)$. Het kantelpunt voor berekeningen met enkele precisie is getekend met een rode lijn. Het kantelpunt voor berekeningen met dubbele precisie is getekend met een witte lijn.}
 \end{figure}
 
-Wanneer we de rekenverhoudingen plotten (figuur \ref{haalF}), zien we dat de kantelpunten convergeren naar $R = 30$ en $R = 14$ wanneer $I$ groter wordt. We noemen dit de convergentierangen. We kunnen deze waardes van R ook eenvoudig afleiden uit de formule:
+Wanneer we de rekenverhoudingen plotten (figuur \ref{haalF}), zien we dat de kantelpunten convergeren naar $R = 30$ en $R = 14$ wanneer $I$ groter wordt. We kunnen deze waardes van R ook eenvoudig afleiden uit de formule:
 \begin{align*}
     61,43 =& \lim_{I \to \infty} \frac{2R (I^2 + I^3) + 2I^3}{3RI + I^3} &
     30,71 =& \lim_{I \to \infty} \frac{2R (I^2 + I^3) + 2I^3}{3RI + I^3}\\
@@ -135,15 +123,17 @@ Wanneer we de rekenverhoudingen plotten (figuur \ref{haalF}), zien we dat de kan
     R =& 14,36\\
 \end{align*}
 
-De rekenverhouding in ($R$=15, $I$=40) is gelijk aan 31,85 flop(dp)/s.
-De rekenverhouding in ($R$=31, $I$=40) is gelijk aan 61,95 flop(sp)/s.
-Deze rekenverhoudingen liggen juist boven de kantelpunten. Merk ook op dat de rangen slechts een paar eenheden boven de convergentierangen liggen. We besluiten dat $f(\T, \mUUU)$ voor enkele precisie zeker geschikt is om te parallelliseren wanneer $I$ groter is dan 40 en R groter is dan 31. Voor dubbele precisie moet $I$ boven 40 liggen en $R$ boven 15.
+Uit figuur \ref{haalF} leiden we af dat de rekenkracht van de GPU ten volle kunnen benutten als $R$ en $I$ groot genoeg zijn en als we $f(\T, \mUUU)$ effici\"ent berekenen. Het is de moeite waard om dit algoritme op de grafische kaart uit te voeren.
+
+%De rekenverhouding in ($R$=15, $I$=40) is gelijk aan 31,85 flop(dp)/s.
+%De rekenverhouding in ($R$=31, $I$=40) is gelijk aan 61,95 flop(sp)/s.
+%Deze rekenverhoudingen liggen juist boven de kantelpunten. Merk ook op dat de rangen slechts een paar eenheden boven de convergentierangen liggen. We besluiten dat $f(\T, \mUUU)$ voor enkele precisie zeker geschikt is om te parallelliseren wanneer $I$ groter is dan 40 en R groter is dan 31. Voor dubbele precisie moet $I$ boven 40 liggen en $R$ boven 15.
 
 %Wanneer we dat evalueren voor $I = R = 50$, dan is de verhouding gelijk aan 98,11. Dit is ruim voldoende. We besluiten dat voor bepaalde realistische probleemgroottes het geheugen de rekenkracht niet zal beperken. Het is dus zeker de moeite om het algoritme te parallelliseren.
 
 %\section{Indelen NDRange}
 \section{Float4x4x4 kernel}
-De basiskernel is een combinatie van vele optimalisaties en beslissingen. Om de lezer niet te overweldigen zullen we de basiskernel stap voor stap opbouwen. Bij elke stap zullen we ook meten hoeveel winst we met elke stap maken. We zullen de winst meten door de tijd te meten die de kernel nodig heeft om uit te voeren. We meten in de volgende vier punten:
+De kernel is een combinatie van vele optimalisaties en beslissingen. Om de lezer niet te overweldigen zullen we de kernel stap voor stap opbouwen. Bij elke stap zullen we ook meten hoeveel winst we met elke stap maken. We zullen de winst meten door de tijd te meten die de kernel nodig heeft om uit te voeren. We meten in de volgende vier punten:
 \begin{itemize}
     \item I = 16, R = 16
     \item I = 16, R = 6000
@@ -159,6 +149,7 @@ We gaan nu elk onderdeel van deze kernel toelichten.
 
 \subsubsection{Voor de R-lus}
 De eerste lijnen vorm de declaratie van de kernel. De declaratie bestaat uit de volgende elementen:
+
 \begin{tabular}{l p{9cm}}
     \code{\_\_kernel void Kernel} & De kernel noemen we ``Kernel''\\
 	\code{\_\_global const float* T} & Het stukje globaal geheugen waarin we de tensor \TT{} opslaan.\\
@@ -172,7 +163,7 @@ De eerste lijnen vorm de declaratie van de kernel. De declaratie bestaat uit de 
 In de volgende twee lijnen declarenen we een tijdelijke variabele (\code{float temp;}) en een stukje registergeheugen waar we \'e\'en element van \CC{} in opslaan. (\code{float c = 0;}) We gebruiken \code{c} ook om het element van \CC{} in op te bouwen.
 
 \subsubsection{Itereren over R}
-Stel dat we $r$ indelen volgens een dimensie van de NDRange. Dan moeten we twee kernels schrijven. Een eerste die $u^{(1)}_{i r} u^{(2)}_{j r} u^{(3)}_{k r}$ uitrekent en een tweede die rest van de berekeningen doet. Door deze opsplitsing ontstaan er $RI^3$ extra schrijfoperaties door de eerste kernel en nog eens $RI^3$ extra leesoperaties door de tweede kernel. Hierdoor is er ongeveer maar \'e\'en rekenoperatie per geheugenoperatie en dit is onaanvaardbaar. Daarnaast zal er ook veel extra geheugen nodig zijn. We besluiten dat we over R moeten itereren in de kernel. De lus waarin we itereren over $r$ noemen we de R-lus.
+Stel dat we $r$ indelen volgens een dimensie van de NDRange. Dan moeten we twee kernels schrijven. Een eerste die $u^{(1)}_{i r} u^{(2)}_{j r} u^{(3)}_{k r}$ uitrekent en een tweede die de rest van de berekeningen doet. Door deze opsplitsing ontstaan er $RI^3$ extra schrijfoperaties door de eerste kernel en nog eens $RI^3$ extra leesoperaties door de tweede kernel. Hierdoor is er ongeveer maar \'e\'en rekenoperatie per geheugenoperatie en dit is onaanvaardbaar. Daarnaast zal er ook veel extra geheugen nodig zijn. We besluiten dat we over R moeten itereren in de kernel. De lus waarin we itereren over $R$ noemen we de R-lus.
 
 In de R-lus gaan $c_{ijk} = \sum_{r=1}^{R} u^{(1)}_{i r} u^{(2)}_{j r} u^{(3)}_{k r}$ berekenen. We doen dit door elke iteratie vooruit te springen in de factormatrices. De factormatrices zijn rij-eerst gelineariseerd waardoor we $I_n$ geheugenplaatsen vooruit moeten springen wanneer we $r$ met \'e\'en verhogen.
 
@@ -213,7 +204,7 @@ sum1 = temp * temp;
 l[get_local_id(0)] = sum1;
 \end{lstlisting}
 
-Daarna zal het eerst work-item binnen de work-group al deze waardes optellen. Het optellen van deze waardes kan pas beginnen nadat alle andere work-items $c_{ijk} - t_{ijk}$ weggeschreven hebben. Deze som wordt dan weggeschreven in \code{sum}. Wanneer alle work-groups verwerkt zijn, zal de ondersteunende software, \code{sum} kopi\"eren naar het RAM geheugen en zal de CPU alles optellen. Het laatste stukje kernel ziet er als volgt uit:
+Daarna zal het eerst work-item binnen de work-group al deze waardes optellen. Het optellen van deze waardes kan pas beginnen nadat alle andere work-items $c_{ijk} - t_{ijk}$ weggeschreven hebben. Deze som wordt dan weggeschreven in \code{sum}. Wanneer alle work-groups verwerkt zijn zal de ondersteunende software \code{sum} kopi\"eren naar het RAM geheugen en zal de CPU alles optellen. Het laatste stukje kernel ziet er als volgt uit:
 \begin{lstlisting}
 barrier(CLK_LOCAL_MEM_FENCE);
 if(get_local_id(0) == 0)
@@ -235,7 +226,7 @@ De tijd die nodig is om de getallen in \code{sum} over te zetten en dan te somme
 \subsection{64 Work-items per work-group}
 In de eerste kernel kunnen we nog het aantal work-items per work-group vrij kiezen. In de aanloop voor een latere versie, gaan we het aantal work-items per work-group vastzetten op 64. We kiezen voor 64 omdat een wavefront bestaat uit exact 64 work-items. Dit betekent dat alle rekeneenheden benut worden. Omdat alle work-items deel uitmaken van dezelfde wavefront, zullen alle work-items synchroon lopen.
 
-Dit is ook duidelijk zichtbaar wanneer we de eerste kernel eerst uitvoeren met 32 work-items en daarna met 64 work-items. (Zie tabel \ref{measF3264}.
+Dit is ook duidelijk zichtbaar wanneer we de eerste kernel eerst uitvoeren met 32 work-items en daarna met 64 work-items. (Zie tabel \ref{measF3264}).
 
 \begin{table}
 	\centering
@@ -326,7 +317,7 @@ We gebruiken \code{\#pragma unroll} omdat dit minder schrijfwerk en beter aanpas
 
 Zie \ref{codeFloat64} voor de volledig broncode van de kernel.
 
-Laten we deze kernel eens vergelijken met de kernel float met 64 work-items. (Zie tabel \ref{measF64}). Voor hogere waardes var R is de winst niet zo heel groot. We zien wel bijna een verdubbeling van de rekenkracht bij lage waardes van R. Dit komt omdat we de sommerings-lus geoptimaliseerd hebben. Bij lage waardes van R, krijgt die meer gewicht.
+Laten we deze kernel eens vergelijken met de kernel float met 64 work-items. (Zie tabel \ref{measF64}). Voor hogere waardes var R is de winst niet zo heel groot. We zien wel bijna een verdubbeling van de rekenkracht bij lage waardes van R. Dit komt omdat we de sommerings-lus geoptimaliseerd hebben. Bij lage waardes van R krijgt die meer gewicht in de totale berekening.
 
 \subsection{float4x4x4}
 In de laatste versie van de kernel gebruikten we \'e\'en dimensie van de NDRange. Elk work-item komt overeenkomen met een element uit $\tens{T}$. We spreken over een 1DRange.
@@ -418,7 +409,7 @@ Zie \ref{codeFloat4x4x4} voor de volledige code.
     \caption{\label{measF4} Overzicht snelheidswinsten door optimalisaties met de toevoeging van float4x4x4.}
 \end{table}
 
-Uit de resultaten (zie tabel \ref{measF4} blijkt dat de 3DRange-versie voor een lager R een beetje effici\"enter is dan de 1DRange-versie. Dit gaat tegen de verwachtingen in. We verwachten eigenlijk dat float4x4x4 vooral effici\"enter is voor hoge waardes van R.
+Uit de meetresultaten (zie tabel \ref{measF4}) blijkt dat de 3DRange-versie voor een lager R een beetje effici\"enter is dan de 1DRange-versie. Dit gaat tegen de verwachtingen in. We verwachten eigenlijk dat float4x4x4 vooral effici\"enter is voor hoge waardes van R.
 
 Laten we eens de leesoperatie binnen de R-lus van een volledige work-group bekijken. We mogen dit doen omdat de aanvragen gecached worden in de L1-cache. Het aantal leesoperaties buiten de R-lus is even groot bij een 3DRange als bij een 1DRange.
 
@@ -439,6 +430,7 @@ Laten we even dieper ingaan op de rekenverhouding voor een work-group voor de 3D
 \hline
 \code{temp = c - T[idxT];}			& $2 \cdot 64$		& $1 \cdot 64$		&	$64$			\\
 \code{sum1 = temp * temp;}			& $2 \cdot 64$		& $2 \cdot 64$		&					\\
+\code{l[lIdx] = sum1;}			& &  &\\
 \code{sum1 += l[i];}				& $2 \cdot 63$		& $1 \cdot 63$		&					\\
 \code{sum[gId] = sum1;}				& 					&					& 	$1$				\\
 \hline
@@ -521,21 +513,21 @@ for(int r = 0; r < R; r++)
 \end{lstlisting}
 
 \subsubsection{\TT{} aftrekken van \CC{}}
-De grootste impact op de code is wellicht wanneer we \TT{} va \CC{} gaan aftrekken.  Net als in de R-lus gaan we rondspringen in het geheugen. Maar deze keer springen we door \TT{}. \todo{ev. tekening} We noemen dit stuk code daarom de T-lus. Stel dat we ons op element (0, 0, 0) bevinden en dat \TT{} (16, 10, 90) groot is. Als we naar (1, 0, 0) willen gaan, moeten we gewoon \'e\'en plaats verder gaan.
+De grootste impact op de code is wellicht wanneer we \TT{} van \CC{} gaan aftrekken.  Net als in de R-lus gaan we rondspringen in het geheugen. Maar deze keer springen we door \TT{}. \todo{ev. tekening} We noemen dit stuk code daarom de T-lus. Stel dat we ons op element (0, 0, 0) bevinden en dat \TT{} (16, 10, 90) groot is. Als we naar (1, 0, 0) willen gaan, moeten we gewoon \'e\'en plaats verder gaan.
 
 Als we vanuit (1, 0, 0) naar (0, 1, 0) willen springen, kunnen we eerst terug naar (0, 0, 0) springen en van daaruit naar (0, 1, 0). We kunnen vanuit (0, 0, 0) naar (0, 1, 0) springen door voorbij de 16 elementen in mode \'e\'en te springen. We kunnen ook gewoon rechtstreeks van (1, 0, 0) naar (0, 1, 0) springen door $16-1$ stappen vooruit te springen.
 
 Wanneer we van (0, 1, 0) naar (0, 0, 1) willen springen doen we iets gelijkaardigs. We springen eerst 15 stappen terug en springen dan $16 * 10$ stappen vooruit. Of we springen rechtstreeks van (0, 1, 0) naar (0, 0, 1) gaan door $160 - 15$ stappen vooruit te springen.
 
-In de kernel is het het aantal elementen in mode \'e\'en gelijk aan 2 * \code{I1} omdat \code{I1} gedefini\"eerd is als het aantal work-items in mode \'e\'en en elk work-item een blokje van 2x2x2 elementen verwerkt. De springafstanden zijn:
+Elk work-item verwerkt een blokje van 2x2x2 elementen. Omdat \code{I1} gedefini\"eerd is als het aantal work-items in mode \'e\'en, is het aantal elementen in mode \'e\'en gelijk aan 2 * \code{I1}. De springafstanden zijn:
 \begin{itemize}
     \item 1
     \item 2 * \code{I1}
     \item 2 * \code{I1} * 2 * \code{I2}
 \end{itemize}
-Om \TT makkelijk van \CC af te kunnen trekken, veranderen we het type van \TT naar float2 en delen we de springafstanden door twee. De springafstanden worden hierdoor:
+Om \TT{} makkelijk van \CC{} af te kunnen trekken, veranderen we het type van \TT{} naar float2 en delen we de springafstanden door twee. De springafstanden worden hierdoor:
 \begin{itemize}
-	\item 0 (We moeten niet meer vooruitspringen)
+	\item 0 (als het volgende element mee zit in de float2) of 1 (als het volgende element in de volgende float2 zit)
     \item \code{I1}
     \item 2 * \code{I1} * \code{I2}
 \end{itemize}
@@ -587,6 +579,7 @@ float sum1 = sum2.x + sum2.y;
 \end{lstlisting}
 
 \subsubsection{Rekenverhouding}
+\label{h:fl8_rekenverhouding}
 In \ref{rekenFl4} blijkt dat float4x4x4 de rekenkracht van de grafische kaart niet ten volle benut. We gaan nu de rekenverhouding van float8x8x8 en float16x16x16 berekenen.
 
 We beginnen met float8x8x8:
@@ -631,7 +624,7 @@ We berekenen nu de rekenverhouding voor float16x16x16:
 \hline
 \end{tabular}
 
-We komen uit dat de rekenverhoudingen in de R-lus gelijk is aan 213,33... flop(sp)/float en flop(dp)/double. Als we R hoog maken, kan dit het stuk na de R-lus compenseren. R mag wel een stuk lager liggen dan bij float8x8x8.
+We komen uit dat de rekenverhoudingen in de R-lus gelijk is aan 213,3... flop(sp)/float en 213,3... flop(dp)/double. Als we R hoog maken, kan dit het stuk na de R-lus compenseren. $R$ mag wel een stuk lager liggen dan bij float8x8x8.
 
 \begin{table}
 	\centering
@@ -652,7 +645,7 @@ We komen uit dat de rekenverhoudingen in de R-lus gelijk is aan 213,33... flop(s
     \caption{\label{measF} Overzicht snelheidswinsten door optimalisaties met de toevoegingen van float8x8x8 en float16x16x16.}
 \end{table}
 
-We voegen float8x8x8 en float16x16x16 toe het overzicht van de optimalisaties. (Zie tabel \ref{measF}) Bij lage waardes van I gaat de performantie omlaag omdat er minder work-items zijn alle rekeneenheden bezig te houden. Voor hoge waardes van I zien we duidelijke snelheidswinsten. Zelfs voor een lage R. Float8x8x8 kan er wel niet zoveel van profiteren omdat de rekenverhouding van de R-lus te dicht bij het kantelpunt ligt. In float16x16x16 is het effect van het kantelpunt duidelijk zichtbaar. Het kantelpunt ligt rond R = 30. Voor R = 16 verwachten we dus dat rekenkracht ongeveer halveert.
+We voegen float8x8x8 en float16x16x16 toe het overzicht van de optimalisaties. (Zie tabel \ref{measF}) Bij lage waardes van $I$ gaat de performantie omlaag omdat er minder work-items zijn om alle rekeneenheden bezig te houden. Voor hoge waardes van $I$ zien we duidelijke snelheidswinsten. Zelfs voor een lage $R$. Float8x8x8 kan er wel niet zoveel van profiteren omdat de rekenverhouding van de R-lus te dicht bij het kantelpunt ligt. In float16x16x16 is het effect van het kantelpunt duidelijk zichtbaar. Het kantelpunt ligt rond $R$ = 30. Voor $R$ = 16 verwachten we dus dat rekenkracht ongeveer halveert.
 
 
 \section{Herschikken van \TT{} in het geheugen}
@@ -679,7 +672,7 @@ Elke 8x8x8 blok gaan we opslaan in een aaneengesloten blok in het geheugen. We g
 \todo{babbelen over waarom}
 
 \subsubsection{Impact op de code}
-Omdat de elementen van \TT{} op een andere plaats staan, moeten nu op een andere manier rondspringen. Voor deze herschikking moeten elke iteratie gewoon 64 stappen vooruit springen. De beginplaatsen berekenen we als volgt. We bepalen eerst in welke blok de gegevens voor de work-group zit en berekenen het adres voor het eerste element van die blok. Vervolgens tellen we het volgnummer van het work-item op bij dit adres. De aangepaste kernel noemen we float8x8x8R. (float8x8x8 Remapped) De volledige broncode is beschikbaar appendix \refCode{float8x8x8R}. De code van float16x16x16R is beschikbaar in appendix \refCode{float16x16x16R}. De aanpassingen voor float8x8x8 zijn de volgende:
+Omdat de elementen van \TT{} op een andere plaats staan, moeten nu op een andere manier rondspringen. Voor deze herschikking moeten we elke iteratie gewoon 64 stappen vooruit springen. De beginplaatsen berekenen we als volgt. We bepalen eerst in welke blok de gegevens voor de work-group zit en berekenen het adres voor het eerste element van die blok. Vervolgens tellen we het volgnummer van het work-item op bij dit adres. De aangepaste kernel noemen we float8x8x8R. (float8x8x8 Remapped) De volledige broncode is beschikbaar appendix \refCode{float8x8x8R}. De code van float16x16x16R is beschikbaar in appendix \refCode{float16x16x16R}. De aanpassingen voor float8x8x8 zijn de volgende:
 \begin{lstlisting}
 //Old
 int gId1 = get_global_id(0);
@@ -753,7 +746,7 @@ Een kanaal is 256 B breed. Dat zijn 16 float4's. Dit is gelijk aan het aantal fl
 
 De volgende vraag die we ons stellen is waar we het eerste work-item van de negende work-group moeten opslaan. De negende work-group is pas aan de beurt wanneer alle work-items van alle acht work-items geplaatst zijn. We noemen een groep van acht work-items een acht-groep. Een acht-groep bevat $16 * 16 * 16 * 8$ = 32Ki floats. Dit zijn 8192 float4's.
 
-We delen dus het geheugen op in blokken van 8192 float4's lang. Deze blokken noemen we een acht-groepblok. Het geheugen in de acht-groepblok is toegewezen aan een acht-groep dat bestaat uit acht work-groups. De acht-groepblok is verdeeld in stroken die elk 16 float4's lang zijn. We noemen dit een kanaalstrook. Alle kanaalstroken binnen dezelfde acht-groepblok die bediend worden door hetzelfde kanaal vormen een kanaalblok. We wijzen de kanaalblokken toe aan de work-groups. Elke kanaalstrook wordt toegewezen aan een work-item binnen de work-group. Deze concepten worden geillustreerd in figuur \ref{iso}.
+We delen dus het geheugen op in blokken van 8192 float4's lang. Deze blokken noemen we een acht-groepblok. Het geheugen in de acht-groepblok is toegewezen aan een acht-groep dat bestaat uit acht work-groups. De acht-groepblok is verdeeld in stroken die elk 16 float4's lang zijn. We noemen dit een kanaalstrook. Alle kanaalstroken binnen dezelfde acht-groepblok die bediend worden door hetzelfde kanaal vormen een kanaalblok. We wijzen de kanaalblokken toe aan de work-groups. Elke kanaalstrook wordt toegewezen aan een work-item binnen de work-group. Deze concepten worden ge\"illustreerd in figuur \ref{iso}.
 
 \begin{figure}
 \centering
@@ -803,7 +796,7 @@ We herhalen nog eens hoe we de gradi\"ent van een derde-orde tensor berekenen:
     g^{(3)}_{kr} =& \sum_{i'}^{I_1}\sum_{j'}^{I_2} f_{i'j'k} u^{(1)}_{i'r} u^{(2)}_{j'r}\\
 \end{align*}
 
-We gaan nu de rekenverhouding berekenen. We veronderstellen hierbij dat \FF al berekend is.
+We gaan nu de rekenverhouding berekenen. We veronderstellen hierbij dat \FF{} al berekend is.
 
 \begin{tabular}{|r l|c| c|c|}
 \hline
@@ -861,9 +854,9 @@ Als $I$ groot genoeg is kunnen we de rekenverhouding benaderen met $R + 1$.  Dit
 \end{figure}
 
 \section{Gradi\"ent-kernel}
-Alle voorgaande kernels gebruiken float's, maar we hebben wel alle berekeningen ook voor doubles gedaan. Daarom gaan we voor de gradi"ent met doubles werken. We kunnen alle float-kernels omvormen naar doubles door het sleutelwoord ``float'' te vervangen door ``double''.
+Alle voorgaande kernels gebruikten we float's, maar we hebben wel alle berekeningen ook voor doubles gedaan. Daarom gaan we voor de gradi"ent met doubles werken. We kunnen alle float-kernels omvormen naar doubles door het sleutelwoord ``float'' te vervangen door ``double''.
 
-\section{double16x16x16FG}
+\section{Double16x16x16FG}
 Als eerste gaan we double16x16x16 aanpassen naar double16x16x16FG. Het verschil er tussen is dat double16x16x16FG ook \FF{} wegschrijft. Dit is een eenvoudige aanpassing:
 \begin{lstlisting}
 //Old
@@ -882,12 +875,12 @@ Als eerste gaan we double16x16x16 aanpassen naar double16x16x16FG. Het verschil 
 	sum4 += temp*temp;
 \end{lstlisting}
 
-De volledige broncode is beschikbaar in appendix %\refCode{double16x16x16FG}.
+De volledige broncode is beschikbaar in appendix \refCode{double16x16x16FG}.
 
 \section{De gradi"ent-kernel}
 We gaan voor deze kernel een 2DRange gebruiken. E\'en dimensie voor $r$ en \'e\'en dimensie voor $i$, $j$ of $k$. We noemen de kernel ``double16x16G'' (double16x16 Gradient) omdat de kernel de gradi\"ent berekent waarbij elke work-group overeenkomt met een $16 \times 16$ blokje in de gradi\"entmatrix. Een work-item komt overeen met een $2 \times 2$ blokje. Er zijn in totaal dus 64 work-items.
 
-We associ\"eren de eerste dimensie van de 2DRange met $r$. Hierdoor zal de GPU eerst work-groups activeren met dezelfde waarde voor $i$ (of $j$ of $k$. Omdat alle work-items elkaar achter de hielen lopen zullen ze vlak na elkaar dezelfde $f_ij'k'$ (of $f_i'jk'$ of $f_i'j'k$) ophalen. Hierdoor kunnen de caches optimaal werken.
+We associ\"eren de eerste dimensie van de 2DRange met $r$. Hierdoor zal de GPU eerst work-groups activeren met dezelfde waarde voor $i$. (of $j$ of $k$) Omdat alle work-items elkaar achter de hielen lopen zullen ze vlak na elkaar dezelfde $f_ij'k'$ (of $f_i'jk'$ of $f_i'j'k$) ophalen. Hierdoor kunnen de caches optimaal werken.
 
 We kunnen de gradi"ent berekenen met een eenvoudig algoritme. We geven hieronder zo een algoritme in pseudo-code. Het algoritme berekent enkel elementen uit de eerste gradi\"entmatrix. De algoritmes voor de andere twee gradi\"entmatrices zijn varianten op het algoritme voor de eerste gradi\"entmatrix.
 \begin{lstlisting}
@@ -942,5 +935,3 @@ cacheNext64ElementOfU3():
 	while elementsLeftInMode3():
 		append(cache, U3[indexMode3, R])
 \end{lstlisting}
-
-We zijn er niet in geslaagd om een correct werkende kernel te schrijven.

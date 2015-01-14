@@ -10,7 +10,7 @@
 \setup{filingcard,
   translatedtitle={Parallelisation of calculations with matrices using OpenCL},
   udc=681.3,
-  shortabstract={We kunnen een tensor voorstellen als een meerdimensionale rij. Er zijn algoritmes die de tensor ontbinden in een Canonieke Polyadische Decompositie (CPD). Deze ontbinding kan ook een benadering zijn. In deze masterproef gaan we kernels ontwikkelen om gradi\"ent gebaseerde optimalisatie-algoritmes te ondersteunen. Dit is een groep van algoritmes die op zoek gaat naar de best benaderende CPD voor een gegeven tensor. Na de inleiding beschrijven we de wiskundige concepten die we nodig hebben om de kernels te ontwikkelen. Vervolgens bespreken het programmeermodel van OpenCL en de architectuur van de AMD Radeon HD 6970. Al onze kernels zijn geoptimaliseerd voor deze grafische kaart. Nadat we weten hoe OpenCL en de grafische kaart in elkaar zitten gaan we een paar berekeningen doen. Met deze berekeningen onderzoeken we de theoretisch grensen van de kernels die we gaan ontwikkelen. Nadat de kernels een groen licht gekregen hebben bespreken we stapsgewijs hoe de kernels in elkaar zitten en waarom die zo in elkaar zitten. We zullen bij elke stap ook een paar metingen doen zodat de effecten van de optimalisaties zichtbaar zijn. Nadat de kernels ontwikkeld zijn gaan we metingen doen en die bespreken. Tot slot gaan we het werk evalueren en uitbreidingsvoorstellen doen.}}
+  shortabstract={We kunnen een tensor voorstellen als een meerdimensionale rij. Er zijn algoritmes die de tensor ontbinden in een Canonieke Polyadische Decompositie (CPD). Deze ontbinding kan ook een benadering zijn. In deze masterproef gaan we kernels ontwikkelen om gradi\"ent gebaseerde optimalisatie-algoritmes te ondersteunen. Dit is een groep van algoritmes die op zoek gaat naar de best benaderende CPD voor een gegeven tensor. Na de inleiding beschrijven we de wiskundige concepten die we nodig hebben om de kernels te ontwikkelen. Vervolgens bespreken het programmeermodel van OpenCL en de architectuur van de AMD Radeon HD 6970. Al onze kernels zijn geoptimaliseerd voor deze grafische kaart. Nadat we weten hoe OpenCL en de grafische kaart in elkaar zitten gaan we een paar berekeningen doen. Met deze berekeningen onderzoeken we de theoretisch grenzen van de kernels die we gaan ontwikkelen. Nadat de kernels een groen licht gekregen hebben bespreken we stapsgewijs hoe de kernels in elkaar zitten en waarom die zo in elkaar zitten. We zullen bij elke stap ook een paar metingen doen zodat de effecten van de optimalisaties zichtbaar zijn. Nadat de kernels ontwikkeld zijn gaan we metingen doen en die bespreken. Tot slot gaan we het werk evalueren en uitbreidingsvoorstellen doen.}}
 % Verwijder de "%" op de volgende lijn als je de kaft wil afdrukken
 %\setup{coverpageonly}
 % Verwijder de "%" op de volgende lijn als je enkel de eerste pagina's wil
@@ -47,10 +47,8 @@
 	Ik wil graag een paar mensen bedanken en ik ga beginnen met mijn promotor Marc Van Barel en mijn begeleider Laurent Sorber. Zonder hun zou deze masterproef er nooit geweest zijn. Ik dank hun voor hun advies en omdat ik altijd bij hun terecht kon met al mijn vragen. Ik wil ook de onderzoeksgroep Numerical Approximation and Linear Algebra Group (NALAG) bedanken voor het ter beschikking stellen van Falcon\footnote{Falcon is een rekenplatform met twee krachtige grafische kaarten en twee krachtige CPU's.}.
 	
 	Naast mijn promotor en begeleider wil ik ook mijn assessoren Philip Dutr\'e en Lieven De Lathauwer bedanken voor de tijd die ze in mijn masterproef gestoken hebben. Ik wil ook een voormalige assessor, Ares Lagae, bedanken voor de kritische feedback tijdens de tussentijdse presentatie.
-
-	Het studentenleven bestaat uit meer dan alleen studeren. Daarom dank ik de Vlaamse Technische Kring voor het aanbieden van de nodige ontspanning.
 	
-	Omdat studeren niet gratis is, wil ik graag mijn ouders bedanken voor de financieele ondersteuning van mijn studies.
+	Omdat studeren niet gratis is, wil ik graag mijn ouders bedanken voor de financi\"ele ondersteuning van mijn studies.
 	Tot slot wil ik ook de rest van mijn familie bedanken voor hun steun.
 \end{preface}
 
@@ -80,11 +78,12 @@
 \begin{flushleft}
 	\renewcommand{\arraystretch}{1.1}
   	\begin{tabularx}{\textwidth}{@{}p{12mm}X@{}}
-		b				& bit\\
-		B				& Byte\\
-    	CPD				& Canonieke Polyadische Decompositie\\
-    	CPU				& De gewone processor (Central processing unit)\\
-    	CU				& Compute-unit\\
+	ADD			& Optel-instructie\\
+	b			& bit\\
+	B			& Byte\\
+    	CPD			& Canonieke Polyadische Decompositie\\
+    	CPU			& De gewone processor (Central processing unit)\\
+    	CU			& Compute-unit\\
     	double			& Drijvendekommagetal met dubbele precisie\\
     	double2			& Tupel van twee drijvendekommagetallen met dubbele precisie\\
     	double4			& Tupel van vier drijvendekommagetallen met dubbele precisie\\
@@ -94,13 +93,14 @@
     	flop			& Drijvendekomma-operatie\\
     	flop(sp)		& Drijvendekomma-operatie met enkele precisie\\
     	flop(dp)		& Drijvendekomma-operatie met dubbele precisie\\
-    	Gi				& $1024^3$\\
-    	GPU				& De grafische kaart (Graphics processing unit)\\
-    	Ki				& $1024$\\
-    	MAD				& Multiply-add ($a = b * c + d$)\\
-    	Mi				& $1024^2$\\
-    	PE				& Processing-element\\
-    	SC				& Stream-core\\
+    	Gi			& $1024^3$\\
+    	GPU			& De grafische kaart (Graphics processing unit)\\
+    	Ki			& $1024$\\
+    	MAD			& Multiply-add ($a = b * c + d$) instructie\\
+	MUL			& Vermenigvuldiging-instructie\\
+    	Mi			& $1024^2$\\
+    	PE			& Processing-element\\
+    	SC			& Stream-core\\
   	\end{tabularx}
 \end{flushleft}
 \newpage
@@ -136,6 +136,7 @@
 \include{algo}
 \include{opencl}
 \include{kernel}
+\include{ondersteunende}
 \include{resultaten}
 % ... en zo verder tot
 \include{besluit}
