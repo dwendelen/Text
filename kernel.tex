@@ -931,3 +931,10 @@ cacheNext64ElementOfU3():
 	while elementsLeftInMode3():
 		append(cache, U3[indexMode3, R])
 \end{lstlisting}
+
+\section{Besluit}
+We hebben voor het berekenen van de doelfunctie en de gradi\"ent onderzocht of ze de volledige rekenkracht van de grafische kaart wel kunnen benutten. We hebben aangetoond dat de rekenverhouding onder bepaalde realistische omstandigen hoog genoeg is om de volledige rekenkracht te kunnen benutten.
+
+Voor het berekenen van de doelfunctie hebben we vijf varianten ontwikkeld: float16x16x16, float16x16x16R, float16x16x16I, float8x8x8 en float8x8x8R. De varianten die eindigen op R en op I zijn varianten die het globaal geheugen effici\"enter gebruiken. De 8 en 16 in de naam geven aan hoeveel element een work-group verwerkt. Bij float16x16x16 verwerkt een work-group een blokje van 16$\times$16$\times$16 elementen met enkele precisie.
+
+Voor het berekenen van de gradi\"ent van de doelfunctie hebben we maar \'e\'en kernel ontwikkeld die in dubbele precisie werkt. Deze kernel verwacht dat de kernel die de doelfunctie berekent ook enkele tussenresultaten wegschrijft. We hebben daarom nog een extra variant voor het berekenen van de doelfunctie ontwikkeld.

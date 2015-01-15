@@ -53,10 +53,7 @@ Bij float16x16x16 met een $R=4000$ zien we dat bij $I=144$ de rekenkracht afneem
 
 Voor float16x16x16 zien we ook duidelijk dat de rekenkracht bijna lineair groeit met $R$ wanneer $R$ gelijk is aan 8 en 16. Wanneer $I$ groter is dan 150 is de rekenkracht bij $R=16$ bijna twee maal zo groot als bij $R=8$. Bij float8x8x8 is dat effect niet zo goed zichtbaar en is ook het verschil tussen $R=16$ en $R=400$ niet zo groot. Merk ook op dat bij float8x8x8 $R=400$ en $R=4000$ zo goed als volledig samenvallen.
 
-
-
-
-
+De hoogste waard die we meten is 1610Gflop/s. Dit is bijna 60\% van de theoretisch maximale rekenkracht van de grafische kaart. We halen deze rekenkracht met float16x16x16 bij $R=400$ en $I=304$. De rest van de maximale rekenkracht gaat verloren naar het wisselen tussen work-groups op de compute-unit, redundante berekeningen, boekhoudkundige berekeningen zoals het berekenen van indexen en het niet volledig vullen van een VLIW.
 
 \section{Vergelijking verschillende kernels die $f(\T, \mUUU)$ berekenen}
 We hebben verschillende kernels ontwikkeld en willen die graag met elkaar vergelijken. Figuren \ref{fl16R_vs_fl16I}, \ref{fl16_vs_fl16R}, \ref{fl8_vs_fl8R} en \ref{fl16_vs_fl8} tonen de performantie van verschillende combinaties van de ontwikkelde kernels.
@@ -109,3 +106,23 @@ Maar float8x8x8 heeft ook een voordelen. Omdat een work-group maar 8$\times$8$\t
 
 Zie figuur \ref{fl8_vs_fl8R} voor een vergelijking tussen float8x8x8 en float8x8x8R. We zien dat float8x8x8 het er overal een heel klein beetje beter doet dan float8x8x8R. We kunnen dus beter geen aandacht besteden aan float8x8x8R.
 
+\section{Kernels die \GGG{} berekenen}
+\begin{figure}[h!]
+\centering
+\includegraphics{result_gradient}
+\caption{\label{result_gradient} Rekenkracht double16x16G in functie van $R$ en $I$}
+\end{figure}
+
+Zie figuur \ref{result_gradient} voor de rekenkracht van double16x16G in functie van $R$ en $I$. We hebben $I$ laten oplopen van 16 tot en met 320 in stappen van 16, en $R$ van 16 tot en met 1024 in stappen van 16.
+
+Wat meteen opvalt is dat de performantie sterk daalt wanneer $I$ een veelvoud is van 64. We kunnen dit niet verklaren maar we vermoeden dat het veroorzaakt kan worden door de ligging van de elementen in het geheugen.
+
+Wanneer we naar de waardes van de rekenkracht kijken zien we dat we niet meer dan 54 Gflop/s halen in dubbele precisie. Dit is amper 8\% van de capaciteit van de grafische kaart.
+
+\section{Besluit}
+
+De kernels die $f(\T, \mUUU)$ berekenen doen het heel goed met zelfs waardes van 1610 Gflop/s. Dat is bijna 60\% van de capaciteit van de grafische kaart. 
+
+Float8x8x8 doet het beter dan float16x16x16 bij lage waardes van $I$ omdat er meer work-groups zijn en float16x16x16R doet het beter dan float16x16x16 wanneer $R$ laag is omdat die effi\"enter om gaat met het globaal geheugen. Deze drie kernels vullen elkaar dus goed aan. Float16x16x16I en float8x8x8R doen hun werk vrij goed, maar in elke situatie is er wel een andere kernel die net iets performanter is.
+
+De kernel om \GGG{} te berekenen haalt slechts 8\% van de capaciteit van de grafische kaart en doet het dus niet goed.

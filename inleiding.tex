@@ -13,7 +13,7 @@ met $\ii{} \in \I$, $R \in \N_0$, $\mUU{n} \in \R^{I_n \times R}$ \\ en $ \I = \
 
 We noemen deze ontbinding de Canonieke Polyadische Decompositie (CPD).
 
-\TT{} wordt benaderd door \CC{} en we zouden graag algoritmes hebben die de beste benadering berekent. Een groep van deze algoritmes zijn de gradi\"ent gebaseerde optimalisatie-algoritmes. 
+\TT{} wordt benaderd door \CC{} en we zouden graag algoritmes hebben die de beste benadering berekenen. Een groep van deze algoritmes zijn de gradi\"ent gebaseerde optimalisatie-algoritmes. 
 
 Er bestaan softwarepakketten, waaronder Tensorlab \cite{tensorlab}, die enkele  van deze algoritmes implementeren.
 
@@ -25,13 +25,38 @@ De uitvoeringstijd van sommige delen van deze algoritmes zijn gelimiteerd door d
 
 Als een deel van het algoritme geschikt is om te parallelliseren, gaan we een zo optimaal mogelijke kernel ontwikkelen. We mikken op kernels die minstens \'e\'en Gflop/s kunnen halen. We berekenen de rekenkracht door het aantal flop's die een optimale implementatie nodig heeft te delen door de tijd die we nodig hebben om dit uit te voeren op de grafische kaart.
 
-\section{Overzicht}
+\section{Overzicht en werkmethode}
 We beginnen met een korte beschrijving van tensoren, de Canonieke Polyadische Decompositie, de doelfunctie en de gradi\"ent van de doelfunctie.
 
 Na de beschrijving van tensoren volgt een beschrijving van het rekenmodel van OpenCL waarna we de architectuur van de AMD Radeon HD 6970 'Cayman XT' bespreken. Deze bespreking zal enkel de elementen bespreken die noodzakelijk zijn om de gevolgen van bepaalde keuzes in te kunnen schatten en om de resultaten te verklaren. Na de bespreking van de architectuur zullen we enkele elementen uit de architectuur samenbrengen om aandachtspunten op te stellen.
 
-In het volgende hoofdstuk gaan we de ontwikkelde kernels bespreken. Voor we een kernel ontwikkelen gaan we eerst na gaan of het algoritme dat we op de grafische kaart willen uitvoeren wel volledig gebruik kan maken van de rekenkracht van de grafische kaart. We gaan in die berekening uit van de theoretisch meest optimale implementatie.
+Daarna gaan we de ontwikkelde kernels bespreken. Voor we een kernel ontwikkelen gaan we eerst na gaan of het algoritme, dat we op de grafische kaart willen uitvoeren, wel volledig gebruik kan maken van de rekenkracht van de grafische kaart. We maken die berekening op basis van de theoretisch meest optimale implementatie.
 
-Nadat we bevestigd hebben dat een algoritme goed gebruik zou kunnen maken van de rekenkracht van de grafische kaart, gaan we de kernels implementeren. We implementeren verschillende varianten van de kernels zodat die elkaar kunnen aanvullen. In de bespreking van de kernels zullen stapsgewijs alle optimalisaties in de kernel uitleggen.
+Nadat we bevestigd hebben dat een algoritme goed gebruik zou kunnen maken van de rekenkracht van de grafische kaart, gaan we de kernels implementeren. We implementeren verschillende varianten van de kernels zodat die elkaar kunnen aanvullen. We ontwikkelen de kernels testgedreven. Dit wilt zeggen dat we eerst testen schrijven voor de kernels en ze dan pas implementeren. Op regelmatige basis draaien we de testen opnieuw om te vermijden dat er achteraf fouten in de kernels sluipen.
+In de bespreking van de kernels zullen we stapsgewijs alle optimalisaties in de kernel uitleggen.
 
-Nadat we alle kernels gemaakt hebben gaan we meten hoe lang het duurt om de kernels uit te voeren. Uit deze uitvoeringstijd kunnen we nagaan hoe effici\"ent de implementaties zijn. Daarnaast gaan we ook de verschillende varianten met elkaar vergelijken en verifi\"eren of de verschillende varianten hun rol goed vervullen.
+Nadat we alle kernels gemaakt hebben gaan we meten hoe lang het duurt om de kernels uit te voeren. Uit deze uitvoeringstijd kunnen we berekenen hoe effici\"ent de implementaties zijn. Daarnaast gaan we ook de uitvoeringstijden van de varianten met elkaar vergelijken en verifi\"eren of de verschillende varianten hun doel waar maken.
+
+\newpage
+\section{Notaties}
+In deze tekst gebruiken we volgende notatie-conventies:
+
+\begin{tabular}{l l l}
+    Vector						& Vetgedrukte kleine letters					& $\vect{v}$\\
+    Matrix 						& Normale hoofdletters							& $M$\\
+    Tensor 						& Hoofdletters in een kalligrafisch geschrift	& \TT\\
+    Element						& Kleine letters met een index in subscript	& $e_i$\\
+\end{tabular}
+
+Merk op dat de index ook een tupel kan zijn. Deze tupel is dan vet gedrukt in kleine letters. Een voorbeeld: $t_{\ii}$.
+
+We gebruiken ook verzamelingen van matrices. Deze verzamelingen worden genoteerd in vetgedrukte hoofdletters. Een voorbeeld: \UUU{}. De i-de matrix van de verzameling \UUU{} noteren we als \UU{i}.
+
+We zullen stukken code en namen van klasses, methodes, variabelen en functies altijd een special lettertype gebruiken: \code{this.isAnExample()}. Voor grote blokken code gebruiken we een iets ander formaat:
+\begin{lstlisting}
+class Example {
+    public boolean isAnExample() {
+        return true;
+    }
+}
+\end{lstlisting}

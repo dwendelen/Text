@@ -108,7 +108,7 @@ Elke compute-unit heeft een command-processor die verantwoordelijk is voor het s
 
 De compute-unit bestaat, naast de command-processor, ook uit 16 processing-elementen (PE). Alle processing-elementen binnen een compute-unit worden aangestuurd door de command-processor in de compute-unit. Hierdoor voeren alle processing-elementen altijd dezelfde instructie uit.
 
-De instructies zijn 128 bits lang en bestaan eigenlijk uit vier 32-bit instructies. Een 128-bit instructie noemen we een very long instruction word (VILW). Een processing-element bestaat uit vier ALU's die elk een 32-bit instructie uitvoeren. Sommige instructies zijn te zwaar om met \'e\'en ALU uit te voeren. Daarom kunnen twee of vier ALU's samengenomen worden om een zware instructie uit te voeren. Wanneer we een instructie uitvoeren duurt het acht cycli voor het resultaat ervan beschikbaar is voor een volgende berekening.
+De instructies zijn 128 bits lang en bestaan eigenlijk uit vier 32-bit instructies. Een 128-bit instructie noemen we een very long instruction word (VLIW). Een processing-element bestaat uit vier ALU's die elk een 32-bit instructie uitvoeren. Sommige instructies zijn te zwaar om met \'e\'en ALU uit te voeren. Daarom kunnen twee of vier ALU's samengenomen worden om een zware instructie uit te voeren. Wanneer we een instructie uitvoeren duurt het acht cycli voor het resultaat ervan beschikbaar is voor een volgende berekening.
 
 Een processing-element is ook gekend onder de naam ``stream core'' (SC). Een ALU wordt in de documentatie soms ook ``processing element'' genoemd. In deze tekst zullen we altijd de termen gebruiken zoals ze in bovenstaande paragraaf beschreven zijn.
 
@@ -258,3 +258,10 @@ Er zijn alternatieven voor het lokaal geheugen we zeker moeten overwegen. Een ee
 Een tweede alternatief is het registergeheugen. Dit geheugen is niet gedeeld met de andere work-items waardoor er meerdere kopie\"en van de gegevens bestaan. Aan de andere kant is het registergeheugen acht keer zo groot en zes maal zo snel als het lokaal geheugen. Een ander nadeel van het registergeheugen is dat de indices al tijdens het compilen gekend moeten zijn. Net als het lokaal geheugen heeft de programmeur hier volledige controle over en moeten we een extra instructie uitvoeren om het registergeheugen te vullen.
 
 Het laatste alternatief is de contanten-cache. Net als de L1-cache is het enkel toegankelijk voor leesoperaties. Een ander nadeel is dat de adressen gekend moeten zijn bij compilatie. Het is ook zeer beperkt in grootte. De grootste voordelen zijn dat het twee maal zo snel is als het lokaal geheugen; geen problemen heeft met gegeventype die groter zijn dan acht bytes; en dat de CU geen instructie moet uitvoeren om het in te laden.
+
+\section{Besluit}
+In OpenCL wordt het werk verdeeld een work-items. Een work-item is een eenheid van werk. Alle work-items samen vormen de NDRange. We kunnen een work-item voorstellen als een element in een lijst, als een element in een rooster of als een element in een driedimensioneel rooster. We moeten de work-items ook groepen in groepen die even groot zijn. Zo een groep noemen we een work-group.
+
+De grafische kaart bestaat uit meerder compute-units (CU) en elke compute-unit voert \'e\'en of meerdere work-groups uit. Naast de compute-units heeft de grafische kaart ook globaal geheugen. Wanneer een work-group een geheugenaanvraag doet en wacht op het antwoord, zal die work-group op non-actief gezet worden en zal de compute-unit een andere work-group uitvoeren.
+
+Voor een goede performantie is het belangrijk dat er genoeg work-groups zijn omdat dan alle traagheden gemaskeerd worden. Er zijn echter enkele limieten op het aantal work-groups die gelijktijdig actief kunnen zijn. Het is ook belangrijk om kanaalconflicten te vermijden. Deze komen voor wanneer verschillende work-groups aanvragen doen naar hetzelfde geheugenkanaal of naar dezelfde geheugenbank.

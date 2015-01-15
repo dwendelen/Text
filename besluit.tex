@@ -1,13 +1,36 @@
 \chapter{Besluit}
 \label{besluit}
-De masterproeftekst wordt afgesloten met een hoofdstuk waarin alle
-besluiten nog eens samengevat worden. Dit is ook de plaats voor suggesties
-naar het verder gebruik van de resultaten, zowel industri"ele toepassingen
-als verder onderzoek.
+Men kan een tensor voorstellen als een $N$-dimensionale rij. We kunnen een tensor $\tens{T}$ benaderen met de Canonieke Polyadische Decompositie, afgekort CPD: 
+\[
+    t_{\ii{}} \approx c_{\ii{}} = \sum_{r=1}^{R} \prod_{n=1}^{N} u^{(n)}_{i_{n}r} \qquad
+    \text{met $\ii{} \in \I$, $R \in \N_0$ en $\mUU{n} \in \R^{I_n \times R} $}
+\]
 
-%\lipsum[1-7]
+We defini\"eren ook een doelfunctie:
+\begin{align*}
+    \tens{F} &= \tens{C} - \tens{T}\\
+    f(\T, \mUUU) &= ||\tens{F}||^2
+\end{align*}
 
-%%% Local Variables: 
-%%% mode: latex
-%%% TeX-master: "masterproef"
-%%% End: 
+Van deze doelfunctie kunnen we de gradi\"ent van een derde-orde tensor als volgt berekenen:
+\[
+    g^{(1)}_{ir} =\sum_{j'}^{I_2}\sum_{k'}^{I_3} f_{ij'k'} u^{(2)}_{j'r} u^{(3)}_{k'r}
+\]
+
+Voor de doelfunctie en de gradi\"ent van de doelfunctie hebben we onderzocht en bevestigd dat een theoretisch optimale implementatie de volle rekenkracht van de grafische kaart kan benutten onder bepaalde probleemgroottes.
+
+We hebben vijf kernels ontwikkeld om $f(\T, \mUUU)$ te berekenen: float16x16x16, float16x16x16R, float16x16x16I, float8x8x8 en float8x8x8R. Deze kernels doen het heel goed met zelfs waardes van 1610 Gflop/s. Dat is bijna 60\% van de capaciteit van de grafische kaart.
+
+Float8x8x8 doet het beter dan float16x16x16 bij lage waardes van $I$ omdat er meer work-groups zijn en float16x16x16R doet het beter dan float16x16x16 wanneer $R$ laag is omdat die effi\"enter om gaat met het globaal geheugen. Deze drie kernels vullen elkaar dus goed aan. Float16x16x16I en float8x8x8R doen hun werk vrij goed, maar in elke situatie is er wel een andere kernel die net iets performanter is.
+
+De kernel om \GGG{} te berekenen haalt slechts 8\% van de capaciteit van de grafische kaart en doet het dus niet goed.
+
+
+Er is nog veel ruimte voor uitbreidingen en verder onderzoek. We hebben ons nu beperkt tot derde-orde tensoren. Er kunnen dus nog kernels ontwikkeld worden voor hogere-orde tensoren. De kernels doen het ook niet zo heel goed bij lage waardes van $I$ hier is nog verbetering mogelijk.
+
+In dit onderzoek hebben we ons gefocust op de AMD Radeon HD 6970. Er is nog ruimte om onderzoek te doen naar andere architecturen.
+
+We zijn er niet in geslaagd om een effici\"ente kernel te schrijven om \GGG{} te berekenen. Een andere poging vanuit een andere invalshoek kan daar misschien verandering in brengen.
+
+De huidige ondersteunende software is zeer eenvoudig en niet optimaal. Er wordt nog geen gebruik gemaakt van de mogelijkheid om gegevens over te zetten van de RAM naar het globaal geheugen terwijl de grafische kaart berekeningen aan het uitvoeren is. Een complexere ondersteunende software moet ook om kunnen met nog grotere probleemgroottes. Momenteel mag \TT{} niet groter zijn dan 128MB. Het is ook interessant om de kernels te integreren in tensorlab.
+

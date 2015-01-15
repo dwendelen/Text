@@ -1,24 +1,10 @@
 \chapter{Tensoren}
 \label{h:tensoren}
-In dit hoofdstuk gaan we het hebben over de notatie-conventies en over tensoren. We zullen enkel de aspecten aanraken die noodzakelijk zijn om rest van deze tekst te kunnen begrijpen.
+In dit hoofdstuk gaan we het hebben over tensoren. We zullen enkel de aspecten aanraken die noodzakelijk zijn om rest van deze tekst te kunnen begrijpen.
 
 In de vakliteratuur vormt men tensoren om naar matrices en vectoren. Vervolgens werkt men dan verder met deze matrices en vectoren. Wij gaan in deze tekst niet met matrices of vectoren werken maar wel rechtstreeks met de elementen van de tensoren. 
 
 %\todo{intro + vermelden parafrazering + misschien titel CPD noemen}
-
-\section{Notaties}
-In deze tekst gebruiken we volgende notatie-conventies:
-
-\begin{tabular}{l l l}
-    Vector						& Vetgedrukte kleine letters					& $\vect{v}$\\
-    Matrix 						& Normale hoofdletters							& $M$\\
-    Tensor 						& Hoofdletters in een kalligrafisch geschrift	& \TT\\
-    Element						& Kleine letters met een index in subscript	& $e_i$\\
-\end{tabular}
-
-Merk op dat de index ook een tupel kan zijn. Deze tupel is dan vet gedrukt in kleine letters. Een voorbeeld: $t_{\ii}$.
-
-We gebruiken ook verzamelingen van matrices. Deze verzamelingen worden genoteerd in vetgedrukte hoofdletters. Een voorbeeld: \UUU{}. De i-de matrix van de verzameling \UUU{} noteren we als \UU{i}.
 
 \section{Tensoren}
 Men kan een tensor voorstellen als een $N$-dimensionale rij. We spreken dan over een $N$-de-orde tensor $\tensor{T}$. $\tensor{T}$ heeft $N$ modes en orde is gelijk aan $N$. Formeel schrijven we $\tensor{T} \in \R^{I_1 \times \dotsb \times I_N}$. $I_n$ is gelijk aan het aantal elementen in mode $n$. Tensoren zijn ook gedefini\"eerd voor complexe getallen, maar we gaan ons beperken tot de re\"ele getallen.
@@ -106,3 +92,21 @@ We stellen de gradi\"enten voor als matrices, de gradi\"entmatrices \GGG{}. \GGG
 	g^{(1)}_{ir}	&=\sum_{j'}^{I_2}\sum_{k'}^{I_3} f_{ij'k'} u^{(2)}_{j'r} u^{(3)}_{k'r}&
 	g^{(n)}_{ir}	&=\sum_{\substack{\iii{} \in \I\\ i'_n = i}} f_{\iii{}} \prod_{\substack{n'=1\\n'\neq n}}^{N} u^{(n')}_{i'_{n'}r}
 \end{align*}
+
+\section{Besluit}
+Men kan een tensor voorstellen als een $N$-dimensionale rij. We kunnen een tensor $\tens{T}$ benaderen met de Canonieke Polyadische Decompositie, afgekort CPD: 
+\[
+    t_{\ii{}} \approx c_{\ii{}} = \sum_{r=1}^{R} \prod_{n=1}^{N} u^{(n)}_{i_{n}r} \qquad
+    \text{met $\ii{} \in \I$, $R \in \N_0$ en $\mUU{n} \in \R^{I_n \times R} $}
+\]
+
+We defini\"eren ook een doelfunctie:
+\begin{align*}
+    \tens{F} &= \tens{C} - \tens{T}\\
+    f(\T, \mUUU) &= ||\tens{F}||^2
+\end{align*}
+
+Van deze doelfunctie kunnen we de gradi\"ent van een derde-orde tensor als volgt berekenen:
+\[
+    g^{(1)}_{ir} =\sum_{j'}^{I_2}\sum_{k'}^{I_3} f_{ij'k'} u^{(2)}_{j'r} u^{(3)}_{k'r}
+\]
