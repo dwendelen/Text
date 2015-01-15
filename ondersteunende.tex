@@ -1,7 +1,14 @@
 \chapter{Ondersteunende software en matlab-brug}
 \label{h:ondersteunende}
 \section{Ondersteunende software}
-Met de kernels alleen kunnen we niet veel doen. We willen graag de kernels gebruiken in andere berekeningen. Om het makkelijk te maken om de kernels te integreren in andere software hebben we een software laag gemaakt die het gebruik van de kernels eenvoudiger maakt. We noemen deze software de ondersteunende software.
+
+\begin{figure}[h!]
+\centering
+\includegraphics[width=\textwidth, clip=true, trim=0 8cm 0 0]{onder}
+\caption{\label{fig:onder} Klassendiagram ondersteunende software.}
+\end{figure}
+
+Met de kernels alleen kunnen we niet veel doen. We willen graag de kernels gebruiken in andere berekeningen. Om het makkelijk te maken om de kernels te integreren in andere software hebben we een software laag gemaakt die het gebruik van de kernels eenvoudiger maakt. We noemen deze software de ondersteunende software. Zie figuur \ref{fig:onder} voor een Klassendiagram.
 
 De ondersteunende software bestaat uit drie groepen van klasses. De klasse \code{ContextQueue}, de buffer factories en de kernel-klasses.
 
@@ -12,4 +19,23 @@ De buffer factories zijn verantwoordelijk voor het beheren en aanmaken van de Op
 De laaste groep van klasses zijn de kernel-klasses. Voor elke OpenCL-kernel is er een klasse die verantwoordelijk is voor het juist instellen van de parameters die de kernel verwacht. De meeste kernel-klasses hebben een methode \code{setBuffers(BufferFactory)} die de buffers in de BufferFactory juist koppelt aan de OpenCL-kernel. Voor de gebruiker een kernel-klasse kan gebruiken moet hij/zij de kernel eerst compileren met de \code{compile()} methode. Alle kernel-klasses erven over van \code{Kernel}.
 
 \section{Matlab-brug}
-De ondersteunende software zorgt zelf niet voor de invoer en handelt niet zelf de uitvoer af. De invoer en uitvoer komt uit andere berekeningen in matlab. Om te kunnen interageren met matlab moeten we dus een stukje software schrijven dat matlab verbind met de ondersteunende software. Dit stukje software noemen we de matlab-brug.
+\begin{figure}[h!]
+\centering
+\includegraphics[width=\textwidth, clip=true, trim=0 8cm 0 0]{brug}
+\caption{\label{fig:brug} Klassendiagram matlab-brug.}
+\end{figure}
+De ondersteunende software zorgt zelf niet voor de invoer en handelt niet zelf de uitvoer af. De invoer en uitvoer komt uit andere berekeningen in matlab. Om te kunnen interageren met matlab moeten we dus een stukje software schrijven dat matlab verbindt met de ondersteunende software. Dit stukje software noemen we de matlab-brug. Zie figuur \ref{fig:brug} voor een Klassendiagram. De matlabbrug voert op dit moment enkel double16x16x16 uit.
+
+We maken de brug met matlab door de functie \code{void mexFunction(int nbOutput, mxArray *outputArray[], int nbInput, const mxArray *inputArray[])} te implementeren. Het matlab-command krijgt dan dezelfde naam als het gecompileerde progamma. Bij ons is dat \code{cl\_cpd\_gateway}. Het eerste argument van \code{cl\_cpd\_gateway} is het commando dat uitgevoerd moet worden. De volgende parameters zijn de parameters voor het commando. De commando's zijn de volgenden:
+
+\begin{tabular}{l p{10cm}}
+ \code{init()}		& initialiseert OpenCL en maakt de kernel klaar.\\
+ \code{setTAndU(T, U)}	& stelt \TT{} en \UUU{} in.\\
+ \code{updateU(U)}	& overschrijft \UUU{}.\\
+ \code{Sum = run()}	& berekent een deel van $f(\T{}, \mUUU{})$ en geeft een vector terug. De elementen van deze vector optellen en delen door twee geeft $f(\T{}, \mUUU{})$.
+\end{tabular}
+
+Wanneer de matlab gebruiker \code{cl\_cpd\_gateway} oproept zal matlab \code{mexFunction} oproepen. \code{mexFunction} zal dan in \code{CommandRegister} het bijhorende command opzoeken. Wanneer het commando gevonden is zal \code{mexFunction} de parameters van dat commando opvragen en invullen. Vervolgens zal \code{mexFunction} het command uitvoeren en het resultaat terugsturen naar matlab.
+
+\section{Besluit}
+We hebben software geschreven om de kernels te ondersteunen en we hebben een matlab-brug gebouwd die het mogelijk maakt om double16x16x16 uit te voeren vanuit matlab.
