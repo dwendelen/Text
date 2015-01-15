@@ -11,17 +11,27 @@ We kunnen deze tensor ook op de volgende manier ontbinden:
 met $\ii{} \in \I$, $R \in \N_0$, $\mUU{n} \in \R^{I_n \times R}$ \\ en $ \I = \{\ii{} \in \N_0^N | \forall n \in [1, N]: i_n \in [1, I_n]\}$
 \end{center}
 
-We noemen deze ontbinding de Canonieke Polyadische Decompositie (CPD). De Canonieke Polyadische Decompositie 
+We noemen deze ontbinding de Canonieke Polyadische Decompositie (CPD).
 
-Er bestaan softwarepakketten, waaronder Tensorlab \cite{tensorlab}, die enkele algoritmes implementeren om de CPD te berekenen. De schrijver heeft echter nog geen bewijs gevondezen die er op wijzen dat er al veel onderzoek gedaan is naar het versnellen van deze algoritmes met behulp van OpenCL/CUDA.
+\TT{} wordt benaderd door \CC{} en we zouden graag algoritmes hebben die de beste benadering berekent. Een groep van deze algoritmes zijn de gradi\"ent gebaseerde optimalisatie-algoritmes. 
+
+Er bestaan softwarepakketten, waaronder Tensorlab \cite{tensorlab}, die enkele  van deze algoritmes implementeren.
 
 \section{Doelstellingen}
 
-Het doel van deze masterproef is om deze algoritmes te ondersteunen met de rekenkracht een grafische kaart. We maken hiervoor gebruik van OpenCL. We gaan op zoek naar rekenintensieve delen uit het algoritme en we gaan die parallelliseren. Maar niet alle algoritmes zijn hiervoor geschikt. Sommige algoritmes zijn gelimiteerd door de bandbreedte. Voor dit soort algoritmes heeft het weinig zin om het uit te voeren op de grafische kaart. Er zijn ook andere algoritmes die men niet kan parallelliseren. Een voorbeeld hiervan is het genereren van recursieve reeksen. Het eerste wat we dus gaan onderzoeken is of het algoritme wel gebruik kan maken van de volledige rekenkracht van de grafische kaart.
+Het doel van deze masterproef is om deze gradi\"ent gebaseerde optimalisatie-algoritmes te ondersteunen met de rekenkracht van een grafische kaart. We maken hiervoor gebruik van OpenCL. 
 
-Als een deel van het algoritme geschikt is om te parallelliseren, gaan we een zo optimaal mogelijke kernel ontwikkelen. We mikken op een implementatie die minstens \'e\'en Gflop/s kan halen. We berekenen de rekenkracht door het aantal flop's die een optimale implementatie nodig heeft te delen door de tijd die we nodig hebben om dit uit te voeren op de grafische kaart. We gaan ook onderzoeken onder welke omstandigheden de grafische kaart effici\"ent werkt.
+De uitvoeringstijd van sommige delen van deze algoritmes zijn gelimiteerd door de bandbreedte. Voor dit soort algoritmes heeft het weinig zin om het uit te voeren op de grafische kaart. Er zijn ook andere algoritmes die men niet kan parallelliseren. Een voorbeeld hiervan is het genereren van recursieve reeksen. Het eerste wat we dus gaan onderzoeken is of het algoritme wel gebruik kan maken van de volledige rekenkracht van de grafische kaart.
 
-De stukken die we parallelliseren zijn op hun eigen niet ze veel waard. Daarom is het ons doel om ze te integreren in \'e\'en van de vele algoritmes die er al bestaan.
+Als een deel van het algoritme geschikt is om te parallelliseren, gaan we een zo optimaal mogelijke kernel ontwikkelen. We mikken op kernels die minstens \'e\'en Gflop/s kunnen halen. We berekenen de rekenkracht door het aantal flop's die een optimale implementatie nodig heeft te delen door de tijd die we nodig hebben om dit uit te voeren op de grafische kaart.
 
 \section{Overzicht}
-We beginnen met 
+We beginnen met een korte beschrijving van tensoren, de Canonieke Polyadische Decompositie, de doelfunctie en de gradi\"ent van de doelfunctie.
+
+Na de beschrijving van tensoren volgt een beschrijving van het rekenmodel van OpenCL waarna we de architectuur van de AMD Radeon HD 6970 'Cayman XT' bespreken. Deze bespreking zal enkel de elementen bespreken die noodzakelijk zijn om de gevolgen van bepaalde keuzes in te kunnen schatten en om de resultaten te verklaren. Na de bespreking van de architectuur zullen we enkele elementen uit de architectuur samenbrengen om aandachtspunten op te stellen.
+
+In het volgende hoofdstuk gaan we de ontwikkelde kernels bespreken. Voor we een kernel ontwikkelen gaan we eerst na gaan of het algoritme dat we op de grafische kaart willen uitvoeren wel volledig gebruik kan maken van de rekenkracht van de grafische kaart. We gaan in die berekening uit van de theoretisch meest optimale implementatie.
+
+Nadat we bevestigd hebben dat een algoritme goed gebruik zou kunnen maken van de rekenkracht van de grafische kaart, gaan we de kernels implementeren. We implementeren verschillende varianten van de kernels zodat die elkaar kunnen aanvullen. In de bespreking van de kernels zullen stapsgewijs alle optimalisaties in de kernel uitleggen.
+
+Nadat we alle kernels gemaakt hebben gaan we meten hoe lang het duurt om de kernels uit te voeren. Uit deze uitvoeringstijd kunnen we nagaan hoe effici\"ent de implementaties zijn. Daarnaast gaan we ook de verschillende varianten met elkaar vergelijken en verifi\"eren of de verschillende varianten hun rol goed vervullen.

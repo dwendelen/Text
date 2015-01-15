@@ -44,7 +44,7 @@ Het is ook mogelijk om de Frobeniusnorm te nemen van een tensor. Deze norm is ge
 \]
 
 \section{Canonieke Polyadische Decompositie (CPD)}
-We kunnen een tensor $\tens{T}$ benaderen met de Canonieke Polyadische Decompositie, afgekort CPD. \todo{referentie}
+We kunnen een tensor $\tens{T}$ benaderen met de Canonieke Polyadische Decompositie, afgekort CPD. %\todo{referentie}
 Deze ontbinden kunnen we als volgt defini\"eren:
 \[
     t_{\ii{}} \approx c_{\ii{}} = \sum_{r=1}^{R} \prod_{n=1}^{N} u^{(n)}_{i_{n}r} \qquad
@@ -86,7 +86,7 @@ Het doel van elk optimalisatie-algoritme is om de \UUU{} te vinden voor een gege
 
 De gradi\"ent gebaseerde optimalisatie-algoritmes vormen een groep van algoritmes om een optimale \UUU{} te vinden. E\'en van de eenvoudigste algoritmes in deze groep is de methode van de stijlste helling maar er zijn ook geavanceerdere algoritmes zoals beperkt-geheugen BFGS \cite{bfgs}. Wat al deze algoritmes gemeenschappelijk hebben is dat ze de gradi\"ent van $f(\T, \mUUU)$ gebruiken om op een iteratieve manier tot een optimale oplossing te komen.
 
-We slaan de gradi\"ent op in de gradi\"entmatrices \GGG{}. \GGG{} heeft dezelfde dimensies als \UUU{}. We gaan nu afleiden hoe men de gradi\"ent van $f(\T, \mUUU)$ berekent. Aan de linkerkant gaan we de gradi\"ent afleiden van een derde-orde tensor voor een element uit de eerste gradi\"entmatrix. Aan de rechterkant gaan we de gradi\"ent afleiden van tensoren in het algemeen.
+We stellen de gradi\"enten voor als matrices, de gradi\"entmatrices \GGG{}. \GGG{} heeft dezelfde dimensies als \UUU{}. We gaan nu afleiden hoe men de gradi\"ent van $f(\T, \mUUU)$ berekent. Aan de linkerkant gaan we de gradi\"ent afleiden van een derde-orde tensor voor een element uit de eerste gradi\"entmatrix. Aan de rechterkant gaan we de gradi\"ent afleiden van tensoren in het algemeen.
 \begin{align*}
 	g^{(1)}_{ir} 	&:= \frac{\partial f(\T, \mUUU)}{\partial u^{(1)}_{ir}} &
     g^{(n)}_{ir} 	&:= \frac{\partial f(\T, \mUUU)}{\partial u^{(n)}_{ir}}\\

@@ -11,7 +11,5 @@ De buffer factories zijn verantwoordelijk voor het beheren en aanmaken van de Op
 
 De laaste groep van klasses zijn de kernel-klasses. Voor elke OpenCL-kernel is er een klasse die verantwoordelijk is voor het juist instellen van de parameters die de kernel verwacht. De meeste kernel-klasses hebben een methode \code{setBuffers(BufferFactory)} die de buffers in de BufferFactory juist koppelt aan de OpenCL-kernel. Voor de gebruiker een kernel-klasse kan gebruiken moet hij/zij de kernel eerst compileren met de \code{compile()} methode. Alle kernel-klasses erven over van \code{Kernel}.
 
-\todo{chaining}
-
 \section{Matlab-brug}
 De ondersteunende software zorgt zelf niet voor de invoer en handelt niet zelf de uitvoer af. De invoer en uitvoer komt uit andere berekeningen in matlab. Om te kunnen interageren met matlab moeten we dus een stukje software schrijven dat matlab verbind met de ondersteunende software. Dit stukje software noemen we de matlab-brug.

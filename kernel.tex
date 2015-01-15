@@ -446,7 +446,7 @@ In float4x4x4 komt \'e\'en work-item overeen met een blokje van $1 \times 1 \tim
 
 
 \subsection{Registergeheugen}
-In de R-lus moeten we de elementen van $\tens{C}$ ergens kunnen opslaan. Voor een 16x16x16-kernel die een tensor met dubbele precisie verwerkt hebben we $8$ B/double $\times 16^3$ double/work-group $= 32KiB$. Elke work-item heeft zijn eigen stukje van $\tens{C}$ dat niet gedeeld moet worden met een ander work-item. Daarnaast zijn de indices bij het compilen al gekend. Daarom kiezen we er voor om het stukje van \CC{} op te slaan in het registergeheugen. Het registergeheugen is 256 KiB groot dus het stukje van \CC{} past er acht maal in.  Men mag echter niet vergeten dat de andere variabelen ook in het registergeheugen opgeslagen moeten worden. \todo{dit beperkt mogelijk performance voor double kernels} Dit beperkt dus het aantal wavefronten tot een maximum van zeven. \todo{tabel maken}
+In de R-lus moeten we de elementen van $\tens{C}$ ergens kunnen opslaan. Voor een 16x16x16-kernel die een tensor met dubbele precisie verwerkt hebben we $8$ B/double $\times 16^3$ double/work-group $= 32KiB$. Elke work-item heeft zijn eigen stukje van $\tens{C}$ dat niet gedeeld moet worden met een ander work-item. Daarnaast zijn de indices bij het compilen al gekend. Daarom kiezen we er voor om het stukje van \CC{} op te slaan in het registergeheugen. Het registergeheugen is 256 KiB groot dus het stukje van \CC{} past er acht maal in.  Men mag echter niet vergeten dat de andere variabelen ook in het registergeheugen opgeslagen moeten worden. %\todo{dit beperkt mogelijk performance voor double kernels} Dit beperkt dus het aantal wavefronten tot een maximum van zeven. \todo{tabel maken}
 
 \subsection{De impact op de code}
 We gaan enkel de verschillen tonen tussen de broncode van float4x4x4 en float8x8x8. De aanpassingen voor float16x16x16 zijn zeer gelijkaardig. De volledige broncodes voor float8x8x8 en float16x16x16 zijn beschikbaar op respectievelijk \ref{codeFloat8x8x8} en \ref{codeFloat16x16x16}.
@@ -513,7 +513,7 @@ for(int r = 0; r < R; r++)
 \end{lstlisting}
 
 \subsubsection{\TT{} aftrekken van \CC{}}
-De grootste impact op de code is wellicht wanneer we \TT{} van \CC{} gaan aftrekken.  Net als in de R-lus gaan we rondspringen in het geheugen. Maar deze keer springen we door \TT{}. \todo{ev. tekening} We noemen dit stuk code daarom de T-lus. Stel dat we ons op element (0, 0, 0) bevinden en dat \TT{} (16, 10, 90) groot is. Als we naar (1, 0, 0) willen gaan, moeten we gewoon \'e\'en plaats verder gaan.
+De grootste impact op de code is wellicht wanneer we \TT{} van \CC{} gaan aftrekken.  Net als in de R-lus gaan we rondspringen in het geheugen. Maar deze keer springen we door \TT{}. %\todo{ev. tekening} We noemen dit stuk code daarom de T-lus. Stel dat we ons op element (0, 0, 0) bevinden en dat \TT{} (16, 10, 90) groot is. Als we naar (1, 0, 0) willen gaan, moeten we gewoon \'e\'en plaats verder gaan.
 
 Als we vanuit (1, 0, 0) naar (0, 1, 0) willen springen, kunnen we eerst terug naar (0, 0, 0) springen en van daaruit naar (0, 1, 0). We kunnen vanuit (0, 0, 0) naar (0, 1, 0) springen door voorbij de 16 elementen in mode \'e\'en te springen. We kunnen ook gewoon rechtstreeks van (1, 0, 0) naar (0, 1, 0) springen door $16-1$ stappen vooruit te springen.
 
@@ -669,8 +669,6 @@ Elke 8x8x8 blok gaan we opslaan in een aaneengesloten blok in het geheugen. We g
 \caption{\label{remap8}Schikking van \TT{} voor float8x8x8 met aaneengesloten blokken.}
 \end{figure}
 
-\todo{babbelen over waarom}
-
 \subsubsection{Impact op de code}
 Omdat de elementen van \TT{} op een andere plaats staan, moeten nu op een andere manier rondspringen. Voor deze herschikking moeten we elke iteratie gewoon 64 stappen vooruit springen. De beginplaatsen berekenen we als volgt. We bepalen eerst in welke blok de gegevens voor de work-group zit en berekenen het adres voor het eerste element van die blok. Vervolgens tellen we het volgnummer van het work-item op bij dit adres. De aangepaste kernel noemen we float8x8x8R. (float8x8x8 Remapped) De volledige broncode is beschikbaar appendix \refCode{float8x8x8R}. De code van float16x16x16R is beschikbaar in appendix \refCode{float16x16x16R}. De aanpassingen voor float8x8x8 zijn de volgende:
 \begin{lstlisting}
@@ -728,8 +726,6 @@ int lIdx = get_local_id(0) + 4 * get_local_id(1) + 16 * get_local_id(2);
 ...
 int gIdx = get_group_id(0) + get_num_groups(0) * (get_group_id(1) + get_num_groups(1) * get_group_id(2));
 \end{lstlisting}
-
-\todo{Herschikking verwaarloosbaar}
 
 \subsubsection{Herschikking}
 We moeten de elementen van \TT{} eerst herschikken. Net als bij de berekening van $f$ gaan we work-item laten overeenkomen met een 2x2x2 blok in \TT{}. De kernel die \TT{} herschikt bestaat gewoon uit een T-lus. Deze T-lus is een samensmelting van de T-lussen van float8x8x8 en float8x8x8R.
